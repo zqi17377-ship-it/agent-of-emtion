@@ -115,11 +115,10 @@ def render_observation_panel(c,allowed,readiness):
         st.write('此功能使用 DeepSeek 分析你允许的用户文字，会产生额外调用费用。密钥仅由本机配置读取。')
         st.caption('连接配置已就绪' if readiness.ready else '连接配置尚未就绪，请先在本机完成配置。')
         mixed=c.gateway_mode!='live' and bool(c.state.messages)
-        if mixed: st.info('此对话已有演示消息，请先新开对话，再选择 DeepSeek 连接。')
+        if mixed: st.info('这段历史对话来自旧版连接，请先新开API对话。')
         valid=api_checkbox(widget+'api') and readiness.ready and not mixed
         if valid and c.gateway_mode!='live':
             c.gateway_mode='live'
-            st.session_state['mode_selector']='DeepSeek API'
     elif index==2:
         draft['domains']=st.multiselect('允许分析的主题',list(DOMAIN_LABELS),default=draft['domains'],format_func=DOMAIN_LABELS.get,key=widget+'domains')
         valid=bool(draft['domains'])

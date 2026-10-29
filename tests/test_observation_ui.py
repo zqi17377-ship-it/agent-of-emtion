@@ -11,6 +11,7 @@ def test_conversation_observation_is_off_and_intro_only_by_default():
 def test_observation_cannot_switch_existing_mock_messages_to_live():
     app=launch()
     c=app.session_state['workspace'].active
+    c.gateway_mode='mock'
     c.state.messages=[Message(role='user',content='已有演示消息')]
     p='explore_'+c.id+'_observe_wizard_'
     app.checkbox(key=p+'research').check().run();advance(app)

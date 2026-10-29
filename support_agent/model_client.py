@@ -1,11 +1,9 @@
 import json
-import os
 from concurrent.futures import Future, TimeoutError as FutureTimeout
 from threading import Thread
 from typing import Protocol
 import httpx
-from .config import load_local_env
-from .schemas import Assessment, CallBudget, Message, ModelCallError, ModelResult
+from .schemas import CallBudget, Message, ModelCallError, ModelResult
 
 
 class ModelGateway(Protocol):
@@ -92,27 +90,10 @@ class DeepSeekGateway:
             self.client.close()
 
 
-class FakeGateway:
-    """Deterministic demonstration, not a psychological assessment model."""
-    mode = 'mock'
-    model_id = 'offline-demo-v1'
-
-    def generate(self, messages, instructions, schema, budget):
-        budget.consume()
-        if schema and schema.get('title') == 'Assessment':
-            output = Assessment(missing_information=['离线模式未进行心理状态评估']).model_dump_json()
-        elif schema and schema.get('title') == 'CheckResult':
-            output = '{"allowed": true, "reason_codes": ["mock_only"]}'
-        else:
-            output = '离线演示：对话流程已运行。这里展示的是固定示例回复；配置 DeepSeek 后，才能测试模型如何理解这段虚构情境。'
-        result = ModelResult(text=output, model_id=self.model_id)
-        budget.record(result)
-        return result
-
-
-def make_gateway(live: bool = False) -> ModelGateway:
+def make_gateway(live: bool = True) -> ModelGateway:
+    """Create the only supported product gateway; never fall back to a demo."""
     if not live:
-        return FakeGateway()
+        raise ModelCallError('offline_removed')
     from .config import load_configuration
 
     settings = load_configuration()

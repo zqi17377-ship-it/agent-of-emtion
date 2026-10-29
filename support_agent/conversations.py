@@ -15,7 +15,7 @@ class Conversation:
     last_result: TurnResult | None = None
     results: dict[str,TurnResult] = field(default_factory=dict)
     feedback: dict[str,str] = field(default_factory=dict)
-    gateway_mode: str = 'mock'
+    gateway_mode: str = 'live'
     exploration: ExplorationState = field(default_factory=ExplorationState)
 
 
@@ -32,7 +32,7 @@ class Workspace:
     def new_conversation(self,gateway_mode=None):
         if len(self.items)>=10:
             raise ValueError('conversation_limit')
-        c=Conversation(gateway_mode=gateway_mode or self.active.gateway_mode)
+        c=Conversation(gateway_mode=gateway_mode or 'live')
         self.items.append(c)
         self.active_id=c.id
         return c
@@ -55,11 +55,10 @@ class Workspace:
         c.exploration.observation.last_auto_candidate_count=0
 
     def remove_active(self):
-        mode=self.active.gateway_mode
         configure_observation(self.active.exploration.observation,'off',())
         self.items=[c for c in self.items if c.id!=self.active_id]
         if not self.items:
-            self.items=[Conversation(gateway_mode=mode)]
+            self.items=[Conversation()]
         self.active_id=self.items[-1].id
         return self.active
 

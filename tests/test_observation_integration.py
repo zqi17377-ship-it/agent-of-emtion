@@ -110,6 +110,9 @@ def test_rejected_chat_does_not_rebind_previous_user_to_new_relation(monkeypatch
     import support_agent.ui as ui
     from support_agent.schemas import TurnResult
     from tests.test_app import launch as root_launch,prepare
+    from support_agent.config import ConfigurationReadiness
+    monkeypatch.setattr(ui,'configuration_readiness',lambda:ConfigurationReadiness(True,True,True,None))
+    monkeypatch.setattr(ui,'make_gateway',lambda *a,**k:object())
     app=prepare(root_launch())
     c=app.session_state['workspace'].active
     c.state.messages=[Message(id='previous_user',role='user',content='这段历史消息谈到第一位朋友。'),Message(id='previous_assistant',role='assistant',content='我在听。')]

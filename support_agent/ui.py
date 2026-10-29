@@ -41,7 +41,6 @@ def new_chat():
 
 def select_chat(cid):
     c=workspace().select(cid)
-    st.session_state['mode_selector']='DeepSeek API' if c.gateway_mode=='live' else '离线演示'
     reset_draft()
     if c.state.messages: st.session_state['workspace_view']='chat'
 
@@ -64,7 +63,6 @@ def feedback(mid,rating):
 def delete_current():
     purge_exploration_controls(workspace().active.id)
     c=workspace().remove_active()
-    st.session_state['mode_selector']='DeepSeek API' if c.gateway_mode=='live' else '离线演示'
     st.session_state.pop('confirm_delete',None)
     reset_draft()
 
@@ -82,15 +80,17 @@ def initialize():
         # Preserve the earlier single-chat UI state during this upgrade.
         old=st.session_state.pop('agent_session',None)
         old_result=st.session_state.pop('last_result',None)
+        old_mode=st.session_state.pop('selected_mode',None)
         if old is not None:
             w.active.state=old
+            if old.messages and old_mode!='DeepSeek API': w.active.gateway_mode='mock'
             if old_result:
                 try: w.record_turn(TurnResult.model_validate(old_result))
                 except ValueError: pass
-        if st.session_state.pop('selected_mode',None)=='DeepSeek API':
-            w.active.gateway_mode='live'
         st.session_state['workspace']=w
     for conversation in workspace().items:
+        if conversation.gateway_mode!='live' and not conversation.state.messages:
+            conversation.gateway_mode='live'
         if not hasattr(conversation,'exploration'):
             conversation.exploration=ExplorationState()
         if not hasattr(conversation.exploration,'observation'):
@@ -98,8 +98,7 @@ def initialize():
         if not hasattr(conversation.exploration,'flows'):
             conversation.exploration.flows={}
     st.session_state.setdefault('workspace_view','home')
-    if 'mode_selector' not in st.session_state:
-        st.session_state['mode_selector']='DeepSeek API' if workspace().active.gateway_mode=='live' else '离线演示'
+    st.session_state.pop('mode_selector',None)
 
 
 def render_sidebar():
@@ -122,7 +121,7 @@ def render_sidebar():
                     st.session_state.pop('confirm_delete',None)
                     st.rerun()
         st.toggle('显示研究记录',key='show_research',value=False,help='查看软件动作与原文依据；这些记录不是诊断报告。')
-        st.markdown('<div class="sidebar-footnote">研究预览 v0.5<br>仅限成年人虚构案例</div>',unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-footnote">研究预览 v0.5.1<br>仅限成年人虚构案例</div>',unsafe_allow_html=True)
 
 
 def render_welcome():
@@ -143,10 +142,10 @@ def render_composer(c,w,enabled,allow_send=True):
         st.selectbox('本条消息谈到的关系对象（可留空）',['',*observation.relations],format_func=lambda key:'暂不指定' if not key else key,key=relation_key)
     placeholder='从你想说的那件事开始…' if enabled else '先完成上方确认，就可以开始了…'
     text=st.chat_input(placeholder,key='composer',disabled=not enabled,max_chars=5000)
-    if text and allow_send:
+    if text and allow_send and enabled:
         gateway=None
         try:
-            gateway=make_gateway(c.gateway_mode=='live')
+            gateway=make_gateway()
             c.state.eligibility=EligibilityContext(adult_status='confirmed')
             existing_ids={m.id for m in c.state.messages}
             with st.spinner('正在认真读你说的话…'):
@@ -159,7 +158,7 @@ def render_composer(c,w,enabled,allow_send=True):
                     observation.message_relations[last_user.id]=selected
             st.rerun()
         except ModelCallError:
-            st.error('暂时无法连接模型。请展开“连接与使用范围”检查本机配置，或切换离线演示。')
+            st.error('暂时无法连接 DeepSeek。请在“连接设置”检查本机配置，稍后重试。')
         finally:
             if gateway and hasattr(gateway,'close'): gateway.close()
 
@@ -172,7 +171,7 @@ def render():
     w=workspace(); c=w.active
     readiness=configuration_readiness()
     view=st.session_state.get('workspace_view','home')
-    enabled=bool(st.session_state.get('research_confirmed')) and (c.gateway_mode!='live' or bool(st.session_state.get('api_consent')) and readiness.ready)
+    enabled=c.gateway_mode=='live' and bool(st.session_state.get('research_confirmed')) and bool(st.session_state.get('api_consent')) and readiness.ready
     with st.container(key='brandbar'):
         left,right=st.columns([4,1],vertical_alignment='center')
         with left: st.markdown('<div class="main-brand"><span class="brand-mark">心</span><b>知心</b><span class="brand-description">倾听 · 梳理 · 陪伴</span></div>',unsafe_allow_html=True)
@@ -221,11 +220,9 @@ def render():
         st.button('完成开始前准备',key='prepare_chat',on_click=begin_chat_setup,type='primary')
     else:
         with st.container(horizontal=True):
-            st.caption('DeepSeek 已连接' if c.gateway_mode=='live' else '离线演示 · 固定示例回复')
+            st.caption('DeepSeek API · 配置已就绪')
             st.button('连接设置',key='chat_connection_settings',on_click=begin_chat_setup,type='tertiary')
     render_observation_monitor(readiness)
-    if c.gateway_mode=='mock':
-        st.markdown('<div class="mode-note"><span>演示模式</span> 使用固定示例回复；切换 DeepSeek 后可体验真实对话。</div>',unsafe_allow_html=True)
     render_composer(c,w,enabled)
     if st.session_state.get('show_research') and c.last_result:
         with st.expander('本轮研究记录'):

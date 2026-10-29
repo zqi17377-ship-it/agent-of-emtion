@@ -4,7 +4,7 @@ from dataclasses import FrozenInstanceError, asdict
 import pytest
 
 from support_agent import config
-from support_agent.model_client import FakeGateway, make_gateway
+from support_agent.model_client import make_gateway
 from support_agent.schemas import ModelCallError
 
 
@@ -151,7 +151,8 @@ def test_readiness_returns_only_safe_state_when_config_is_unreadable(tmp_path):
         make_gateway(live=True)
 
 
-def test_offline_gateway_does_not_require_readable_config(tmp_path):
+def test_removed_offline_mode_is_rejected_before_reading_config(tmp_path):
     (tmp_path / '.env').write_bytes(b'LLM_API_KEY=\xff\xfe')
 
-    assert isinstance(make_gateway(live=False), FakeGateway)
+    with pytest.raises(ModelCallError, match='offline_removed'):
+        make_gateway(live=False)

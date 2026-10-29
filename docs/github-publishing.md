@@ -62,6 +62,8 @@ docs/v04-progress.md
 docs/v04-release.md
 docs/v05-progress.md
 docs/v05-release.md
+docs/v051-progress.md
+docs/v051-release.md
 policies/actions.json
 policies/fallbacks.json
 policies/help_resources.json
@@ -119,8 +121,10 @@ support_agent/workflow.py
 tests/__init__.py
 tests/conftest.py
 tests/helpers.py
+tests/test_api_only_ui.py
 tests/test_app.py
 tests/test_assessment.py
+tests/test_cli.py
 tests/test_config.py
 tests/test_conversation_observation.py
 tests/test_conversations.py

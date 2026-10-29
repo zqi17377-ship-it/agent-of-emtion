@@ -42,11 +42,19 @@ def test_secret_not_in_error():
     assert str(error.value) == 'auth'
 
 
-def test_mock_mode_needs_no_key():
-    from support_agent.model_client import FakeGateway
-    from support_agent.schemas import Message, CallBudget
-    result = FakeGateway().generate([Message(role='user', content='我想聊聊')], 'respond', None, CallBudget())
-    assert '离线演示' in result.text
+def test_gateway_factory_defaults_to_real_api(monkeypatch):
+    from support_agent import config
+    from support_agent.model_client import DeepSeekGateway, make_gateway
+    monkeypatch.setattr(config, 'load_configuration', lambda: {'LLM_API_KEY':'synthetic-test-key','LLM_MODEL':'synthetic-model','LLM_BASE_URL':'https://api.deepseek.com'})
+    gateway = make_gateway()
+    assert isinstance(gateway, DeepSeekGateway)
+    assert gateway.mode == 'live'
+
+
+def test_removed_offline_mode_cannot_be_requested():
+    from support_agent.model_client import make_gateway, ModelCallError
+    with pytest.raises(ModelCallError, match='offline_removed'):
+        make_gateway(live=False)
 
 
 def test_budget_rejects_fifth_attempt_and_expired_deadline():

@@ -17,7 +17,7 @@ def test_smoke_does_not_report_fallback_as_success(tmp_path):
 
 def test_smoke_only_uses_fixed_synthetic_input(tmp_path):
     from scripts.live_smoke import run_smoke
-    from support_agent.model_client import FakeGateway
+    from tests.helpers import FakeGateway
     report=run_smoke(FakeGateway(),tmp_path)
     assert report['gateway_mode']=='mock'
     assert report['success'] is False

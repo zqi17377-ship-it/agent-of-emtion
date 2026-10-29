@@ -1,5 +1,15 @@
 from pathlib import Path
 from streamlit.testing.v1 import AppTest
+import pytest
+from support_agent.config import ConfigurationReadiness
+from support_agent.schemas import Message, TurnResult
+
+
+@pytest.fixture(autouse=True)
+def ready_connection_for_ui_checks(monkeypatch):
+    import support_agent.ui as ui
+    monkeypatch.setattr(ui,'configuration_readiness',lambda:ConfigurationReadiness(True,True,True,None))
+    monkeypatch.setattr(ui,'make_gateway',lambda *a,**k:object())
 
 
 def launch():
@@ -9,8 +19,13 @@ def launch():
 
 
 def chat(app,text='这是虚构案例，想聊聊工作。'):
+    # Seed rendering state only. Real API behavior is checked separately with
+    # explicit synthetic live requests, never by a demonstration gateway.
     prepare(app)
-    app.chat_input[0].set_value(text).run()
+    w=app.session_state['workspace']
+    w.active.state.messages=[Message(role='user',content=text),Message(role='assistant',content='用于页面控件检查的既有记录。')]
+    w.record_turn(TurnResult(text=w.active.state.messages[-1].content,action='listen',status='ok'))
+    app.run()
     assert not app.exception
     return app
 
@@ -20,14 +35,14 @@ def prepare(app):
     elif any(b.key=='prepare_chat' for b in app.button): app.button(key='prepare_chat').click().run()
     else: return app
     if any(b.key=='chat_setup_next' for b in app.button):
-        app.button(key='chat_setup_next').click().run()
         app.checkbox(key='chat_setup_research').check().run()
         app.button(key='chat_setup_next').click().run()
+        app.checkbox(key='chat_setup_api').check().run()
         app.button(key='chat_setup_finish').click().run()
     return app
 
 
-def test_page_mock_conversation_and_clear():
+def test_page_conversation_record_and_clear():
     app=launch()
     assert app.chat_input[0].disabled
     chat(app)
@@ -65,21 +80,20 @@ def test_feedback_does_not_call_model_again(monkeypatch):
     mid=c.state.messages[-1].id
     app.button(key='helpful_'+c.id+'_'+mid).click().run()
     assert app.session_state['workspace'].active.feedback[mid]=='helpful'
-    assert len(calls)==1
+    assert len(calls)==0
 
 
-def test_mode_switch_preserves_previous_chat():
+def test_connection_settings_preserve_current_api_chat():
     app=launch(); chat(app)
     old=app.session_state['workspace'].active.id
     app.button(key='chat_connection_settings').click().run()
-    app.radio(key='chat_setup_mode').set_value('DeepSeek API').run()
-    app.button(key='chat_setup_next').click().run()
     assert not app.exception
-    assert app.chat_input[0].disabled
-    assert len(app.session_state['workspace'].items)==2
+    assert not app.radio
+    assert len(app.session_state['workspace'].items)==1
+    assert app.session_state['workspace'].active.state.messages
     app.button(key='conversation_'+old).click().run()
     assert len(app.chat_message)==2
-    assert app.session_state['mode_selector']=='离线演示'
+    assert app.session_state['workspace'].active.gateway_mode=='live'
 
 
 def test_rejected_turn_is_visible_without_corrupting_previous_reply(monkeypatch):

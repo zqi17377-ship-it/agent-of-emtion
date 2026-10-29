@@ -1,5 +1,13 @@
 from pathlib import Path
 from streamlit.testing.v1 import AppTest
+import pytest
+from support_agent.config import ConfigurationReadiness
+
+
+@pytest.fixture(autouse=True)
+def ready_configuration(monkeypatch):
+    import support_agent.ui as ui
+    monkeypatch.setattr(ui,'configuration_readiness',lambda:ConfigurationReadiness(True,True,True,None))
 
 
 def home():
@@ -15,12 +23,11 @@ def test_first_visit_has_three_clear_entries_and_no_setup_form():
 
 def test_chat_preparation_is_sequential_and_then_leaves_chat_uncluttered():
     app=home();app.button(key='home_chat').click().run()
-    assert len(app.radio)==1 and len(app.checkbox)==0
-    app.button(key='chat_setup_next').click().run()
     assert len(app.radio)==0 and len(app.checkbox)==1
     assert app.button(key='chat_setup_next').disabled
     app.checkbox(key='chat_setup_research').check().run()
     app.button(key='chat_setup_next').click().run()
+    app.checkbox(key='chat_setup_api').check().run()
     app.button(key='chat_setup_finish').click().run()
     assert not app.exception
     assert not app.chat_input[0].disabled
@@ -45,13 +52,13 @@ def test_cancelled_personality_connection_does_not_redirect_later_chat_setup():
     app.session_state['feature_flow_active']=True
     app.session_state['exploration_tool']='mbti'
     app.session_state['research_confirmed']=True
+    app.session_state['api_consent']=True
     app.run()
     app.button(key='personality_'+c.id+'_setup').click().run()
     assert c.exploration.flows['chat_setup']['step']==0
     app.button(key='chat_setup_exit').click().run()
     app.button(key='home_chat').click().run()
     app.button(key='chat_connection_settings').click().run()
-    app.button(key='chat_setup_next').click().run()
     app.button(key='chat_setup_next').click().run()
     app.button(key='chat_setup_finish').click().run()
     assert app.session_state['workspace_view']=='chat'

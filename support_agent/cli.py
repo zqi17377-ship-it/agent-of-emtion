@@ -7,12 +7,10 @@ from .workflow import run_turn
 
 def main():
     p=argparse.ArgumentParser(description='中文心理支持研究原型：仅输入虚构案例')
-    group=p.add_mutually_exclusive_group()
-    group.add_argument('--mock',action='store_true',help='离线演示，默认')
-    group.add_argument('--live',action='store_true',help='发送虚构文本到 DeepSeek，产生 API 用量')
-    args=p.parse_args()
+    p.add_argument('--live',action='store_true',help=argparse.SUPPRESS)
+    p.parse_args()
     try:
-        gateway=make_gateway(args.live)
+        gateway=make_gateway()
     except ModelCallError as e:
         print('配置错误：'+str(e)+'。请参考 README 在本机配置 .env。'); return 2
     session=new_session()

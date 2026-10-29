@@ -2,6 +2,25 @@ import json
 from support_agent.schemas import CallBudget, Message, ModelResult, ModelCallError
 
 
+class FakeGateway:
+    """Unit-test fixture only; never a product mode or API-quality check."""
+    mode = 'mock'
+    model_id = 'unit-test-fixture'
+
+    def generate(self, messages, instructions, schema, budget):
+        from support_agent.schemas import Assessment
+        budget.consume()
+        if schema and schema.get('title') == 'Assessment':
+            output = Assessment(missing_information=['测试夹具未评估心理状态']).model_dump_json()
+        elif schema and schema.get('title') == 'CheckResult':
+            output = '{"allowed": true, "reason_codes": ["fixture_only"]}'
+        else:
+            output = '这是一条仅用于自动回归的测试夹具回复。'
+        result = ModelResult(text=output, model_id=self.model_id)
+        budget.record(result)
+        return result
+
+
 class ScriptedGateway:
     """Only replaces external model outputs; workflow remains real."""
     mode = 'mock'
