@@ -99,3 +99,19 @@ def confirmed_type(preferences: dict[str, str]) -> str | None:
             return None
         choices.append(choice)
     return "".join(choices)
+
+
+def describe_self_report(answers: dict[str, str]) -> str:
+    """Describe explicit original-question choices without assigning a type."""
+    descriptions = {
+        'EI': ('社交能量', {'E': '你在这两题都选择了交流中梳理或与熟悉的人一起活动。', 'I': '你在这两题都选择了先独自整理想法或独处中恢复。'}, '回想最近一次休息：什么活动实际让你恢复了精力？'),
+        'SN': ('信息关注', {'S': '你在这两题都优先选择具体例子、步骤与已有事实。', 'N': '你在这两题都优先选择整体关联与新的可能性。'}, '遇到新任务时，先看具体例子还是整体思路更能帮助你开始？'),
+        'TF': ('决策偏好', {'T': '你在这两题都优先选择一致标准和理由。', 'F': '你在这两题都优先考虑相关人的价值与感受。'}, '回顾一个实际决定：你如何兼顾判断理由与相关人的需要？'),
+        'JP': ('安排方式', {'J': '你在这两题都更喜欢先定安排和大致顺序。', 'P': '你在这两题都更喜欢保留选择并随情况调整。'}, '哪些安排需要提前确定，哪些部分保留弹性更适合你？'),
+    }
+    lines = ['### 本次偏好解读', '', '以下依据八题原创问答中你明确选择的内容，供核对日常习惯；不能据此确定稳定人格类型。']
+    for axis, pole in score_self_report(answers).items():
+        label, texts, prompt = descriptions[axis]
+        explanation = texts.get(pole, '两题选择了不同方向，可能随不同情境变化，先保留两种线索。' if pole == 'mixed' else '信息不足：存在未回答或不确定选项，暂不归类。')
+        lines.extend(['', '**'+label+'**：'+explanation, '可以想一想：'+prompt])
+    return '\n'.join(lines)

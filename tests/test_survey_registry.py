@@ -56,34 +56,34 @@ def test_ipip50_official_key_and_direction():
 def test_ui_shared_items_keep_versions_and_relationship_widgets_separate():
     from tests.test_questionnaire_wizard import questionnaire_app, start
     app=start(questionnaire_app(versions=True))
-    first_key=app.selectbox[1].key
-    app.selectbox[1].select(4).run()
+    first_key=app.radio[0].key
+    app.radio[0].set_value(4).run()
     app.selectbox(key='version').select('zh-v2:key-v2').run()
     app.button(key='survey_start').click().run()
-    second_key=app.selectbox[1].key
+    second_key=app.radio[0].key
     assert first_key != second_key
-    assert app.selectbox[1].value is None
+    assert app.radio[0].value is None
     app.selectbox(key='version').select('zh-v1:key-v1').run()
-    assert app.selectbox[1].value==4
+    assert app.radio[0].value==4
 
 
 def test_ui_attachment_relationship_switch_clears_new_answers():
     from tests.test_questionnaire_wizard import questionnaire_app, start
     app=start(questionnaire_app('ATTACHMENT_EXPLORATION','attachment_questions'))
-    assert len(app.selectbox)==1
-    app.selectbox[0].select('亲密伴侣').run()
+    assert len(app.radio)==1 and len(app.selectbox)==0
+    app.radio[0].set_value('亲密伴侣').run()
     app.button(key='survey_next').click().run()
-    first_key=app.selectbox[0].key
-    app.selectbox[0].select(4).run()
+    first_key=app.radio[0].key
+    app.radio[0].set_value(4).run()
     app.button(key='survey_prev').click().run()
-    app.selectbox[0].select('亲近朋友').run()
+    app.radio[0].set_value('亲近朋友').run()
     app.button(key='survey_next').click().run()
-    assert app.selectbox[0].key != first_key
-    assert app.selectbox[0].value is None
+    assert app.radio[0].key != first_key
+    assert app.radio[0].value is None
     app.button(key='survey_prev').click().run()
-    app.selectbox[0].select('亲密伴侣').run()
+    app.radio[0].set_value('亲密伴侣').run()
     app.button(key='survey_next').click().run()
-    assert app.selectbox[0].value==4
+    assert app.radio[0].value==4
 
 
 def test_attachment_context_does_not_leak_between_conversations():
@@ -101,10 +101,10 @@ render_questionnaire(st.session_state.conversations[active],ATTACHMENT_EXPLORATI
 """).run()
     app.checkbox(key='survey_research').check().run()
     app.button(key='survey_start').click().run()
-    relation=app.selectbox[1]
+    relation=app.radio[0]
     first_key=relation.key
-    relation.select('亲密伴侣').run()
+    relation.set_value('亲密伴侣').run()
     app.selectbox(key='active').select('second').run()
     app.button(key='survey_start').click().run()
-    assert app.selectbox[1].value is None
-    assert app.selectbox[1].key != first_key
+    assert app.radio[0].value is None
+    assert app.radio[0].key != first_key

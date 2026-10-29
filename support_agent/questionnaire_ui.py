@@ -7,19 +7,24 @@ from .flow_ui import step_header, research_checkbox, back_to_tools
 
 
 def show_result(definition,result,context):
+    from .survey_presentation import build_survey_presentation
+    presentation=build_survey_presentation(definition,result)
     st.markdown('#### 本次记录')
     if context: st.caption('想到的关系：'+context)
-    for dimension in result.dimensions.values():
-        value=f'{dimension.total} / {dimension.max_total}' if definition.display=='sum' else f'{dimension.mean:.2f} / {dimension.max_value}'
-        st.markdown(f'**{dimension.label}**　{value}')
-        st.progress((dimension.mean-dimension.min_value)/(dimension.max_value-dimension.min_value))
-    st.caption('条形仅表示原始量程中的位置，不是概率或人群百分位。修改答案后，请重新计算。')
+    st.image(presentation.svg,width='stretch')
+    st.caption(presentation.chart_label)
+    with st.expander('查看原始分数'):
+        for dimension in result.dimensions.values():
+            value=f'{dimension.total} / {dimension.max_total}' if definition.display=='sum' else f'{dimension.mean:.2f} / {dimension.max_value}'
+            st.markdown(f'**{dimension.label}**　{value}')
+    st.markdown(presentation.markdown)
     if definition.id=='attachment_exploration':
         label,explanation=attachment_pattern(result)
         st.info('在这段关系中的本次参考：'+label)
         with st.expander('依恋参考是如何得到的？'): st.write(explanation)
-    st.write(definition.interpretation)
-    st.download_button('导出这份探索记录',data=export_survey_report(definition,result,context)+(('\n\n版本：'+result.version_id) if result.version_id else ''),file_name=f'{(result.version_id or definition.id).replace(chr(58), chr(45))}-research.md',mime='text/markdown',key='download_survey',on_click='ignore')
+    with st.expander('计分与研究限制'):
+        st.write(definition.interpretation)
+    st.download_button('导出这份探索记录',data=export_survey_report(definition,result,context)+'\n\n'+presentation.markdown+(('\n\n版本：'+result.version_id) if result.version_id else ''),file_name=f'{(result.version_id or definition.id).replace(chr(58), chr(45))}-research.md',mime='text/markdown',key='download_survey',on_click='ignore')
 
 
 def render_questionnaire(conversation,definition,allowed,version_id=None):
@@ -59,7 +64,7 @@ def render_questionnaire(conversation,definition,allowed,version_id=None):
         return
     if page=='context':
         options=['亲密伴侣','亲近朋友','父母或家人','其他重要关系']
-        selected=st.selectbox('这次想到哪段关系？',options,index=options.index(context) if context in options else None,key=prefix+'_attachment_context',placeholder='选择关系，不需要填写任何人的姓名')
+        selected=st.radio('这次想到哪段关系？',options,index=options.index(context) if context in options else None,key=prefix+'_attachment_context')
         if selected: flow['context']=selected
         st.caption('同一次作答始终围绕这一段关系，不把不同对象混在一起。')
         if st.button('上一步',key='survey_prev'): go('intro')
@@ -84,7 +89,7 @@ def render_questionnaire(conversation,definition,allowed,version_id=None):
         item=definition.items[index]
         values=list(range(definition.min_score,definition.max_score+1))
         previous=answers.get(item.id)
-        value=st.selectbox(f'{index+1}. {item.text}',values,index=values.index(previous) if previous in values else None,format_func=lambda value:definition.options[value-definition.min_score],key=f'{prefix}_item_{item.id}_{context}',placeholder='请选择',disabled=not enabled)
+        value=st.radio(f'{index+1}. {item.text}',values,index=values.index(previous) if previous in values else None,format_func=lambda value:definition.options[value-definition.min_score],key=f'{prefix}_item_{item.id}_{context}',disabled=not enabled)
         if value is not None: answers[item.id]=value
         answer_progress()
         if st.button('上一步',key='survey_prev'):

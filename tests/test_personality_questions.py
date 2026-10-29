@@ -77,3 +77,14 @@ def test_only_complete_explicit_preferences_form_a_type(preferences, expected):
     from support_agent.personality_questions import confirmed_type
 
     assert confirmed_type(preferences) == expected
+def test_preference_reflection_describes_choices_and_keeps_unknowns():
+    from support_agent.personality_questions import describe_self_report
+    first=describe_self_report({'ei_1':'E','ei_2':'E'})
+    second=describe_self_report({'ei_1':'I','ei_2':'I'})
+    assert '交流中梳理' in first and '独处中恢复' in second
+    assert first!=second
+    assert '信息不足' in first
+    mixed=describe_self_report({'ei_1':'E','ei_2':'I'})
+    assert '不同情境' in mixed
+    assert '概率' not in first and '你是EN' not in first
+

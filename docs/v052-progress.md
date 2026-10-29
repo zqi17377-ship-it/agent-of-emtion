@@ -1,0 +1,10 @@
+# v0.5.2 implementation and verification ledger
+
+- API-only work was completed and verified on GitHub first, commit 0d6a781acec06540922ca04d8b640a0c1f940946. User's follow-up requested self-naming conversations, directly visible options and matching test interpretation/graphics.
+- Delegated conversation naming, question rendering and pure result presentation with disjoint ownership. Root integrated original preference descriptions, source checks, review, browser QA and delivery. No new dependencies.
+- Manual title state is conversation-scoped; bounded rename-by-ID preserves names across replies. Reset clears custom-name state. Test choices are visible radios without initial selection; previous answers and isolated drafts remain.
+- Five-dimensional tests produce SVG radar charts retaining instrument-specific direction/range. Other dimensions use raw-range charts. Pure local descriptions and reflection prompts are also exported; no automatic questionnaire transmission or new model requests for scores/charts.
+- Meaningful RED→GREEN regression cycles were observed. Cross-review found inconsistent attachment bands; one shared midpoint helper now drives both text and reference labels. Browser QA found standalone st.html SVG absent from DOM; native st.image renders the SVG data URL, and the integration test now verifies the image proto and decoded content.
+- Final full suite: 351 passed in 47.70s, exit 0. Data validation: valid true, errors empty. Pure local tests are not API effectiveness evidence.
+- Real browser: custom name survived one actual DeepSeek reply to fixed adult synthetic text (status ok/listen, 3 requests, 5938 ms, 3505/176 reported input/output tokens). Observation remained off. Completed TIPI10 with expected 4.50/5.50/6.00/4.50/5.50 means and a visible radar. SWLS3 midpoint total12/21 and visible range chart/interpretation. Options visible, 15px text. Local screenshots excluded from source publishing.
+- Research scope, original/self-translated instrument notices and non-commercial restrictions retained; no clinical or psychometric validity claim. Runtime reports, API configuration and sessions remain excluded from GitHub.

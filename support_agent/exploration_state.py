@@ -1,7 +1,7 @@
 """Opt-in exploration records scoped to one in-memory conversation."""
 from dataclasses import dataclass,field
 from .personality import PersonalityProfile,user_fingerprint
-from .personality_questions import score_self_report,confirmed_type
+from .personality_questions import score_self_report,confirmed_type,describe_self_report
 from .psychometrics import QuestionnaireResult
 from .observation_scheduler import ObservationState
 
@@ -50,4 +50,5 @@ def export_personality_report(state,messages):
     if state.self_answers:
         lines.extend(['','## 原创偏好自述（非标准化量表）'])
         for axis,pole in score_self_report(state.self_answers).items(): lines.append(f'{AXIS_LABELS[axis][0]}：{pole}')
+        lines.extend(['',describe_self_report(state.self_answers)])
     return '\n'.join(lines)

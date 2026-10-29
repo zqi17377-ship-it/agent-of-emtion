@@ -4,7 +4,7 @@ from pathlib import Path
 import streamlit as st
 from . import workflow
 from .config import ROOT,configuration_readiness
-from .conversations import Workspace
+from .conversations import Workspace,MAX_TITLE_LENGTH
 from .model_client import make_gateway
 from .schemas import EligibilityContext,ModelCallError,TurnResult
 from .exploration_state import ExplorationState
@@ -29,6 +29,7 @@ def reset_draft():
     st.session_state.pop('attachment_context',None)
     st.session_state.pop('notice',None)
     st.session_state.pop('setup_return',None)
+    st.session_state.pop('renaming_conversation',None)
 
 
 def new_chat():
@@ -101,6 +102,36 @@ def initialize():
     st.session_state.pop('mode_selector',None)
 
 
+def render_conversation_name_form(w):
+    if st.button('重命名当前对话',key='rename_conversation'):
+        st.session_state['renaming_conversation']=w.active_id
+        st.session_state['rename_value_'+w.active_id]=w.active.title
+        st.session_state.pop('confirm_delete',None)
+    target_id=st.session_state.get('renaming_conversation')
+    target=next((c for c in w.items if c.id==target_id),None)
+    if target is None:
+        st.session_state.pop('renaming_conversation',None)
+        return
+    with st.form('rename_form_'+target_id):
+        name=st.text_input('对话名称',key='rename_value_'+target_id,max_chars=MAX_TITLE_LENGTH)
+        st.caption('1—40个字符，仅修改这段对话的名称。')
+        left,right=st.columns(2)
+        save=left.form_submit_button('保存名称',key='save_conversation_title',type='primary')
+        cancel=right.form_submit_button('取消命名',key='cancel_conversation_title')
+        if cancel:
+            st.session_state.pop('renaming_conversation',None)
+            st.rerun()
+        if save:
+            try: w.rename_conversation(target_id,name)
+            except ValueError: st.error('请填写1到40个字符的对话名称。')
+            except KeyError:
+                st.session_state.pop('renaming_conversation',None)
+                st.rerun()
+            else:
+                st.session_state.pop('renaming_conversation',None)
+                st.rerun()
+
+
 def render_sidebar():
     w=workspace()
     with st.sidebar:
@@ -112,6 +143,7 @@ def render_sidebar():
         st.caption('这些对话只保存在当前浏览器会话，关闭或刷新后可能丢失。')
         with st.expander('会话管理'):
             st.write(f'当前保留 {len(w.items)} / 10 个对话')
+            render_conversation_name_form(w)
             if st.button('移除当前对话',key='request_delete'):
                 st.session_state['confirm_delete']=w.active_id
             if st.session_state.get('confirm_delete')==w.active_id:
@@ -121,7 +153,7 @@ def render_sidebar():
                     st.session_state.pop('confirm_delete',None)
                     st.rerun()
         st.toggle('显示研究记录',key='show_research',value=False,help='查看软件动作与原文依据；这些记录不是诊断报告。')
-        st.markdown('<div class="sidebar-footnote">研究预览 v0.5.1<br>仅限成年人虚构案例</div>',unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-footnote">研究预览 v0.5.2<br>仅限成年人虚构案例</div>',unsafe_allow_html=True)
 
 
 def render_welcome():
@@ -188,7 +220,7 @@ def render():
         return
     with st.container(key='chat_toolbar'):
         title,actions,export=st.columns([4,1.15,1.15],vertical_alignment='center')
-        with title: st.markdown('<div class="conversation-heading">'+html.escape(c.title if c.state.messages else '给自己的一段时间')+'</div>',unsafe_allow_html=True)
+        with title: st.markdown('<div class="conversation-heading">'+html.escape(c.title if c.state.messages or getattr(c,'title_is_custom',False) else '给自己的一段时间')+'</div>',unsafe_allow_html=True)
         with actions: st.button('新对话',key='new_top',icon=':material/add:',on_click=new_chat,width='stretch')
         with export: st.download_button('导出',data=w.export_markdown(),file_name=f'zhixin-{c.id[:8]}.md',mime='text/markdown; charset=utf-8',key='export_chat',disabled=not bool(c.state.messages),on_click='ignore',icon=':material/download:',width='stretch',help='主动下载当前对话文本，不包含内部判断或密钥。')
     if st.session_state.get('notice'): st.info(st.session_state['notice'])

@@ -100,6 +100,19 @@ ATTACHMENT_EXPLORATION = Questionnaire(
 )
 
 
+ATTACHMENT_MIDDLE_MIN = 2.5
+ATTACHMENT_MIDDLE_MAX = 3.5
+
+
+def attachment_dimension_band(mean: float) -> str:
+    """One shared, unvalidated midpoint rule for reference and detail text."""
+    if not 1 <= mean <= 5:
+        raise ValueError('An attachment dimension mean from 1 to 5 is required.')
+    if ATTACHMENT_MIDDLE_MIN <= mean <= ATTACHMENT_MIDDLE_MAX:
+        return 'middle'
+    return 'lower' if mean < ATTACHMENT_MIDDLE_MIN else 'higher'
+
+
 def attachment_pattern(result: QuestionnaireResult) -> tuple[str, str]:
     """Describe this exercise's answer pattern using a stated midpoint heuristic."""
     if (
@@ -107,20 +120,20 @@ def attachment_pattern(result: QuestionnaireResult) -> tuple[str, str]:
         or set(result.dimensions) != {'anxiety', 'avoidance'}
     ):
         raise ValueError('An attachment exploration result is required.')
-    anxiety = result.dimensions['anxiety'].mean
-    avoidance = result.dimensions['avoidance'].mean
-    if 2.5 <= anxiety <= 3.5 or 2.5 <= avoidance <= 3.5:
+    anxiety = attachment_dimension_band(result.dimensions['anxiety'].mean)
+    avoidance = attachment_dimension_band(result.dimensions['avoidance'].mean)
+    if 'middle' in (anxiety, avoidance):
         label = '混合或暂不清晰的应答倾向'
-    elif anxiety < 2.5 and avoidance < 2.5:
+    elif anxiety == 'lower' and avoidance == 'lower':
         label = '较接近安全的应答倾向'
-    elif anxiety > 3.5 and avoidance < 2.5:
+    elif anxiety == 'higher' and avoidance == 'lower':
         label = '较多关系焦虑的应答倾向'
-    elif anxiety < 2.5 and avoidance > 3.5:
+    elif anxiety == 'lower' and avoidance == 'higher':
         label = '较多亲近回避的应答倾向'
     else:
         label = '关系焦虑与亲近回避并存的应答倾向'
     explanation = (
-        '这只是本原创练习的中点启发式规则：任一题均分落在 2.5—3.5（含边界）时暂不归类，'
+        f'这只是本原创练习的中点启发式规则：任一题均分落在 {ATTACHMENT_MIDDLE_MIN:g}—{ATTACHMENT_MIDDLE_MAX:g}（含边界）时暂不归类，'
         '其余回答仅按两个维度位于中点哪一侧描述。该规则及其边界未经验证，'
         '不是有效的测量阈值、心理诊断或稳定类型。请同时查看两个维度的原始得分，'
         '并结合所选关系与近期处境理解。'

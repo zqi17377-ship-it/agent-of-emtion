@@ -51,11 +51,13 @@ docs/superpowers/plans/2026-10-22-mental-support-agent-work-plan.md
 docs/superpowers/plans/2026-10-29-chat-experience-plan.md
 docs/superpowers/plans/2026-10-29-conversational-exploration-plan.md
 docs/superpowers/plans/2026-10-29-personality-exploration-plan.md
+docs/superpowers/plans/2026-10-30-results-and-titles-plan.md
 docs/superpowers/specs/2026-10-22-mental-support-agent-design.md
 docs/superpowers/specs/2026-10-29-chat-experience-design.md
 docs/superpowers/specs/2026-10-29-conversational-exploration-design.md
 docs/superpowers/specs/2026-10-29-personality-exploration-design.md
 docs/superpowers/specs/2026-10-30-guided-flows-design.md
+docs/superpowers/specs/2026-10-30-results-and-titles-design.md
 docs/v02-release.md
 docs/v03-verification.md
 docs/v04-progress.md
@@ -64,6 +66,8 @@ docs/v05-progress.md
 docs/v05-release.md
 docs/v051-progress.md
 docs/v051-release.md
+docs/v052-progress.md
+docs/v052-release.md
 policies/actions.json
 policies/fallbacks.json
 policies/help_resources.json
@@ -113,6 +117,7 @@ support_agent/research_wellbeing_tests.py
 support_agent/response.py
 support_agent/schemas.py
 support_agent/session.py
+support_agent/survey_presentation.py
 support_agent/survey_registry.py
 support_agent/telemetry.py
 support_agent/ui.py
@@ -127,6 +132,7 @@ tests/test_assessment.py
 tests/test_cli.py
 tests/test_config.py
 tests/test_conversation_observation.py
+tests/test_conversation_titles.py
 tests/test_conversations.py
 tests/test_data.py
 tests/test_deadlines.py
@@ -153,6 +159,7 @@ tests/test_psychometrics.py
 tests/test_published_personality_tests.py
 tests/test_questionnaire_wizard.py
 tests/test_session_privacy.py
+tests/test_survey_presentation.py
 tests/test_survey_registry.py
 tests/test_usage.py
 tests/test_wellbeing_tests.py

@@ -121,3 +121,9 @@ No Git commits, professional sign-off, or live model test is claimed. Plan compl
 - 固定输出替身只留在tests用于可重复的纯软件回归，模型链路以真实API验证。批量合成评测默认限制3案例/12请求，可进一步收紧。
 - 审查复现旧agent_session演示历史被默认live重标的问题，先失败回归后修复；原历史保持只读并可新建API对话，不隐式混用。
 - 最终完整回归322 passed in44.90s；数据检查valid true。实际浏览器两步准备后发送一个固定虚构案例，status ok/action listen，3请求，5,042ms，输入/输出3708/201 tokens；观察关闭。截图仅本地保存。没有新增模型准确性或临床有效性结论。
+
+## v0.5.2 命名与结果图形 — 2026-10-30
+
+- 用户要求API任务完成后加入对话自行命名、选项展开、相应解读与五边形评分图。API版先提交0d6a781；随后完成手动命名持久优先、radio逐题选择、大五雷达与其他原始量程图、本机解读与导出。
+- 新增纯展示模块；原题库范围和反向计分不变。审查修复依恋文字/参考边界不一致；浏览器排查确认st.html过滤SVG后，改用st.image并加入实际图片proto回归。
+- 最终软件回归351 passed in47.70s，数据检查valid true。实际浏览器命名后真实API回复保留名字，3请求/5938ms/3505输入与176输出tokens；另完成TIPI10雷达及SWLS3横图/12分，问卷未调用API。详见[v0.5.2说明](v052-release.md)。

@@ -4,7 +4,7 @@ from . import personality
 from .model_client import make_gateway
 from .schemas import ModelCallError
 from .exploration_state import AXIS_LABELS,export_personality_report
-from .personality_questions import QUESTION_ITEMS,CHOICE_UNSURE,score_self_report,confirmed_type
+from .personality_questions import QUESTION_ITEMS,CHOICE_UNSURE,score_self_report,confirmed_type,describe_self_report
 from .observation_jobs import _AccountedGateway
 
 
@@ -106,6 +106,7 @@ def render_personality(conversation,allowed,readiness):
             st.markdown('#### 你在原创问答中的偏好')
             for axis,pole in score_self_report(state.self_answers).items():
                 st.write(AXIS_LABELS[axis][0]+'：'+('两端都有，暂不归类' if pole=='mixed' else '待补充' if pole=='unknown' else pole))
+            st.markdown(describe_self_report(state.self_answers))
         own=confirmed_type(state.confirmations)
         if own: st.success('你自行确认的偏好：'+own)
         if not state.profile and not state.self_answers and not state.confirmations: st.info('还没有保存的记录。可以先填写本机偏好问答。')

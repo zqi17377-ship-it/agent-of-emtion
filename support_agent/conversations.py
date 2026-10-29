@@ -6,11 +6,14 @@ from .session import new_session,clear_session
 from .exploration_state import ExplorationState
 from .observation_scheduler import fresh_observation_state, configure_observation
 
+MAX_TITLE_LENGTH = 40
+
 
 @dataclass
 class Conversation:
     id: str = field(default_factory=lambda:uuid4().hex)
     title: str = '新的对话'
+    title_is_custom: bool = False
     state: SessionState = field(default_factory=new_session)
     last_result: TurnResult | None = None
     results: dict[str,TurnResult] = field(default_factory=dict)
@@ -43,10 +46,23 @@ class Workspace:
         self.active_id=conversation_id
         return self.active
 
+    def rename_conversation(self,conversation_id,title):
+        conversation=next((c for c in self.items if c.id==conversation_id),None)
+        if conversation is None:
+            raise KeyError(conversation_id)
+        if not isinstance(title,str):
+            raise ValueError('invalid_title')
+        normalized=' '.join(title.split())
+        if not normalized or len(normalized)>MAX_TITLE_LENGTH:
+            raise ValueError('invalid_title')
+        conversation.title=normalized
+        conversation.title_is_custom=True
+
     def clear_active(self):
         c=self.active
         clear_session(c.state)
         c.title='新的对话'
+        c.title_is_custom=False
         c.results.clear()
         c.feedback.clear()
         c.last_result=None
@@ -66,7 +82,7 @@ class Workspace:
         c=self.active
         c.last_result=result
         first_user=next((m.content for m in c.state.messages if m.role=='user'),None)
-        if first_user:
+        if first_user and not getattr(c,'title_is_custom',False):
             title=' '.join(first_user.split())
             c.title=title[:18]+('…' if len(title)>18 else '')
         if c.state.messages and c.state.messages[-1].role=='assistant':
