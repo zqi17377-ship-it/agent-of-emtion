@@ -1,3 +1,4 @@
+"""Choose a capability, then mount only that capability's current step."""
 import streamlit as st
 from .exploration_catalog import TOOL_LABELS,SURVEY_BY_ID
 from .exploration_state import exploration_paused,ExplorationState
@@ -6,12 +7,13 @@ from .personality_ui import render_personality
 from .observation_scheduler import fresh_observation_state
 from .survey_registry import list_versions
 from .observation_ui import render_observation_panel
+from .onboarding_ui import choose_feature
+from .flow_ui import step_header,back_to_tools
 
 
 def purge_exploration_controls(conversation_id):
-    prefix='explore_'+conversation_id+'_'
     for key in list(st.session_state):
-        if isinstance(key,str) and key.startswith(prefix):
+        if isinstance(key,str) and (key.startswith('explore_'+conversation_id+'_') or key.startswith('personality_'+conversation_id+'_')):
             del st.session_state[key]
     st.session_state.pop('attachment_context',None)
 
@@ -22,30 +24,39 @@ def clear_exploration(conversation):
 
 
 def render_exploration(conversation,allowed,readiness):
-    st.markdown('<div class="exploration-title"><span>认识自己，多一种视角</span><h1>心理探索</h1><p>从性格偏好到关系模式。按自己的节奏选择，每份记录都可以重新思考。</p></div>',unsafe_allow_html=True)
     if exploration_paused(conversation.state.previous_decision):
-        st.info('当前先关注眼前的支持与安全需求，性格和问卷探索稍后再进行。')
+        st.info('当前先关注眼前的支持与安全需求，探索稍后再进行。')
         return
-    tool=st.selectbox('选择探索工具',list(TOOL_LABELS),index=1,format_func=TOOL_LABELS.get,key='exploration_tool')
-    st.caption('问卷在本机计分，不会自动发送给模型；这些记录仅保存在当前浏览器会话。')
+    active=bool(st.session_state.get('feature_flow_active'))
+    if not active:
+        st.markdown('## 选择一个想了解的方向')
+        st.write('选定后再决定题数或方式，每一步都会提示接下来做什么。')
+        descriptions={'mbti':'八题偏好问答、自我确认或查看对话中的性格线索。','attachment_exploration':'围绕一段关系，观察关系焦虑和亲近回避。','mini_ipip':'10、20或50题，按五个维度了解自己。','rses':'10题，了解通常的自我价值感受。','coping_confidence':'6题，回顾面对日常挑战的信心。','swls':'3或5题，回顾整体生活满意度。','conversation_observation':'按顺序设置主题和整理方式，再回到对话。'}
+        for tool,label in TOOL_LABELS.items():
+            with st.container(border=True):
+                st.button(label,key='feature_'+tool,width='stretch',on_click=choose_feature,args=(tool,))
+                st.caption(descriptions[tool])
+        return
+    tool=st.session_state.get('exploration_tool','conversation_observation')
     if tool=='mbti': render_personality(conversation,allowed,readiness)
     elif tool=='conversation_observation': render_observation_panel(conversation,allowed,readiness)
     else:
-        definition=SURVEY_BY_ID[tool]
-        base=next(v for v in list_versions() if v.enabled and v.definition.id==definition.id)
+        base=next(v for v in list_versions() if v.enabled and v.definition.id==SURVEY_BY_ID[tool].id)
         versions=[v for v in list_versions(base.construct_id) if v.enabled]
-        selected=base
-        if len(versions)>1:
+        navigation=conversation.exploration.flows.setdefault('feature_navigation',{'tool':tool,'stage':'version' if len(versions)>1 else 'run'})
+        if navigation.get('tool')!=tool:
+            navigation.update(tool=tool,stage='version' if len(versions)>1 else 'run')
+        if navigation['stage']=='version':
+            step_header('选择适合自己的题数',['选择版本','逐题填写','核对与结果'],0)
             lookup={v.id:v for v in versions}
-            version_id=st.selectbox('选择题数与版本',list(lookup),index=list(lookup).index(base.id),format_func=lambda key:lookup[key].definition.title,key='explore_'+conversation.id+'_version_'+base.construct_id)
-            selected=lookup[version_id]
-            st.caption('不同工具和题数分别计分，请结合完整名称阅读结果。')
+            old=navigation.get('version',base.id)
+            selected=st.radio('本次使用哪个版本？',list(lookup),index=list(lookup).index(old) if old in lookup else 0,format_func=lambda key:lookup[key].definition.title,key='explore_'+conversation.id+'_version_'+base.construct_id)
+            navigation['version']=selected
+            st.caption('不同工具的题数和计分各自独立；研究译文尚未经过中文信效度验证。')
+            if st.button('开始这份测试',key='feature_begin',type='primary'): navigation['stage']='run';st.rerun()
+            st.button('返回功能选择',key='feature_exit',on_click=back_to_tools,type='tertiary')
+            return
+        selected=next(v for v in versions if v.id==navigation.get('version',base.id))
         render_questionnaire(conversation,selected.definition,allowed,version_id=selected.id)
-        candidates=[v for v in list_versions(base.construct_id) if not v.enabled]
-        if candidates:
-            with st.expander('其他题数 · 待核实版本'):
-                for version in candidates:
-                    st.write(f'{version.instrument_id} · {version.item_count}题')
-                    st.caption(version.notes)
-    with st.expander('管理本对话的探索记录'):
+    with st.expander('管理已保存的探索记录'):
         st.button('清除本对话探索记录',key='clear_exploration',on_click=clear_exploration,args=(conversation,))

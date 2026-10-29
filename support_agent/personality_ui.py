@@ -33,18 +33,113 @@ def show_profile(conversation):
 
 
 def render_personality(conversation,allowed,readiness):
+    from .flow_ui import step_header, research_checkbox, api_checkbox
     state=conversation.exploration
-    st.markdown('### 从对话认识自己的偏好')
-    st.write('观察日常习惯中的线索，再由你确认。这里使用 MBTI 风格的四维表达，不是官方 MBTI 测试。')
+    flow=state.flows.setdefault('personality',{})
+    page=flow.setdefault('page','menu')
+    prefix='personality_'+conversation.id+'_'
+    def go(target):
+        flow['page']=target
+        st.rerun()
+    def button(label,key,target,disabled=False):
+        if st.button(label,key=prefix+key,disabled=disabled): go(target)
+    st.markdown('### 认识自己的偏好')
+    st.caption('MBTI 风格的自我探索，不是官方 MBTI 测试。')
+    if page=='menu':
+        for label,target in [('从对话观察偏好','scope'),('八题偏好问答','self_intro'),('我的自我确认','confirm_intro'),('查看已保存记录','results')]:
+            button(label,'open_'+target,target)
+        if st.button('返回功能选择',key=prefix+'tools'):
+            st.session_state['feature_flow_active']=False
+            st.session_state['workspace_view']='exploration'
+            st.rerun()
+        return
+    if st.button('返回人格功能',key=prefix+'menu'): go('menu')
+    if page in ('self_intro','confirm_intro'):
+        is_self=page=='self_intro'
+        step_header('八题偏好问答' if is_self else '我的自我确认',['说明与研究确认','逐项填写','核对并保存'],0)
+        st.write('八道原创、非标准化的日常偏好问题，每页一题，可选择不确定。' if is_self else '按四个维度逐项确认你认可的偏好，可以暂不确认。与对话观察不同也没关系。')
+        st.caption('答案仅在本机计算与保存，不会发送给模型。')
+        confirmed=research_checkbox(prefix+page+'_research')
+        button('开始八题问答' if is_self else '开始自我确认','start_'+page,'questions' if is_self else 'confirm',not confirmed)
+        return
+    if page in ('questions','self_review','confirm','confirm_review'):
+        is_self=page in ('questions','self_review')
+        items=QUESTION_ITEMS if is_self else list(AXIS_LABELS)
+        draft_key='answers' if is_self else 'confirmations'
+        index_key='question_index' if is_self else 'confirmation_index'
+        draft=flow.setdefault(draft_key,dict(state.self_answers if is_self else state.confirmations))
+        index=flow.setdefault(index_key,0)
+        review=page.endswith('review')
+        step_header('八题偏好问答' if is_self else '我的自我确认',[f'第 {i+1} 项' for i in range(len(items))]+['核对并保存'],len(items) if review else index)
+        st.caption('本机计算，不发送给模型。可以选择不确定，返回后草稿会保留。')
+        if review:
+            for item in items:
+                key=item.id if is_self else item
+                value=draft.get(key,'unknown')
+                st.write((item.prompt if is_self else AXIS_LABELS[item][0])+'：'+('不确定 / 看情况' if value=='unknown' else value))
+            if st.button('返回修改',key=prefix+'edit'):
+                flow[index_key]=len(items)-1
+                go('questions' if is_self else 'confirm')
+            if st.button('保存偏好自述' if is_self else '保存自我确认',key=prefix+'save_'+draft_key,disabled=not bool(st.session_state.get('research_confirmed'))):
+                if is_self: state.self_answers=dict(draft)
+                else: state.confirmations=dict(draft)
+                go('results')
+            return
+        item=items[index]
+        key=item.id if is_self else item
+        options=['unknown',item.left_pole,item.right_pole] if is_self else ['unknown',*item]
+        labels=({'unknown':CHOICE_UNSURE,item.left_pole:item.left_label,item.right_pole:item.right_label} if is_self else {'unknown':'暂不确认',item[0]:AXIS_LABELS[item][1],item[1]:AXIS_LABELS[item][2]})
+        value=st.radio(item.prompt if is_self else AXIS_LABELS[item][0],options,index=options.index(draft.get(key,'unknown')),format_func=lambda v:labels[v],key=prefix+draft_key+'_'+key,disabled=not bool(st.session_state.get('research_confirmed')))
+        draft[key]=value
+        st.caption(f'已完成 {index+1} / {len(items)} 项，剩余 {len(items)-index-1} 项')
+        if st.button('上一题' if is_self else '上一项',key=prefix+'previous',disabled=index==0):
+            flow[index_key]=index-1
+            st.rerun()
+        if st.button('下一题' if is_self else '下一项',key=prefix+'next',disabled=not bool(st.session_state.get('research_confirmed'))):
+            if index+1==len(items): go('self_review' if is_self else 'confirm_review')
+            flow[index_key]=index+1
+            st.rerun()
+        return
+    if page=='results':
+        show_profile(conversation)
+        if state.self_answers:
+            st.markdown('#### 你在原创问答中的偏好')
+            for axis,pole in score_self_report(state.self_answers).items():
+                st.write(AXIS_LABELS[axis][0]+'：'+('两端都有，暂不归类' if pole=='mixed' else '待补充' if pole=='unknown' else pole))
+        own=confirmed_type(state.confirmations)
+        if own: st.success('你自行确认的偏好：'+own)
+        if not state.profile and not state.self_answers and not state.confirmations: st.info('还没有保存的记录。可以先填写本机偏好问答。')
+        else: st.download_button('导出性格探索记录',data=export_personality_report(state,conversation.state.messages),file_name='personality-exploration.md',mime='text/markdown',key=prefix+'download',on_click='ignore')
+        return
+    steps=['确认范围与研究用途','了解并单独同意','确认连接','主动开始分析']
+    step_header('从对话观察偏好',steps,{'scope':0,'consent':1,'connection':2,'analyze':3}.get(page,0))
+    if page=='scope':
+        st.write('仅分析当前对话中你发送的文字；一时情绪不能证明固定性格。')
+        research=research_checkbox(prefix+'research')
+        button('下一步','scope_next','consent',not research)
+        return
+    if page=='consent':
+        st.write('模型根据日常偏好寻找原文依据；未知与矛盾会保留，结果由你确认。')
+        consent=st.checkbox('同意分析当前对话中我发送的文字，探索性格偏好',value=flow.get('consent',False),key=prefix+'consent')
+        flow['consent']=consent
+        button('上一步','consent_previous','scope')
+        button('下一步','consent_next','connection',not consent or not st.session_state.get('research_confirmed'))
+        return
+    if page=='connection':
+        st.write('连接已就绪' if conversation.gateway_mode=='live' and readiness.ready else '对话分析需要先连接 DeepSeek；本机问答无需连接。')
+        api=api_checkbox(prefix+'api')
+        if st.button('设置模型连接',key=prefix+'setup'):
+            from .onboarding_ui import begin_chat_setup
+            begin_chat_setup(return_to='mbti')
+            st.rerun()
+        button('上一步','connection_previous','consent')
+        button('下一步','connection_next','analyze',not (api and readiness.ready and conversation.gateway_mode=='live' and flow.get('consent') and st.session_state.get('research_confirmed')))
+        return
     users=[m for m in conversation.state.messages if m.role=='user']
-    prefix='explore_'+conversation.id+'_'
-    consent=st.checkbox('同意分析当前对话中我发送的文字，探索性格偏好',key=prefix+'personality_consent',disabled=not allowed)
-    can_call=allowed and consent and conversation.gateway_mode=='live' and readiness.ready and bool(st.session_state.get('api_consent')) and len(users)>=2
     observation=state.observation
+    can_call=bool(st.session_state.get('research_confirmed')) and flow.get('consent') and conversation.gateway_mode=='live' and readiness.ready and bool(st.session_state.get('api_consent')) and bool(st.session_state.get('research_confirmed')) and len(users)>=2
     can_call=can_call and observation.request_count+observation.ledger.reserved<6
-    if conversation.gateway_mode!='live': st.caption('对话分析需要 DeepSeek；离线模式可以使用下方的原创偏好问答。')
-    elif len(users)<2: st.caption('先在对话页说两段自己的日常偏好，再来分析；也可以先填写下面的问答。')
-    elif not st.session_state.get('api_consent'): st.caption('请先在上方确认 DeepSeek 数据流向与调用费用。')
+    if len(users)<2: st.info('先在对话页说两段自己的日常偏好，再来分析。')
     unchanged=state.profile is not None and not state.is_stale(conversation.state.messages) and state.profile_error is None
     if st.button('更新对话性格观察' if state.profile else '分析当前对话',key='analyze_personality',type='primary',disabled=not can_call or unchanged):
         gateway=None
@@ -58,47 +153,19 @@ def render_personality(conversation,allowed,readiness):
             def current():
                 return (conversation.exploration.observation is observation and observation.generation==generation
                         and observation.consent_revision==revision and bool(st.session_state.get('api_consent'))
-                        and bool(st.session_state.get('research_confirmed')) and bool(st.session_state.get(prefix+'personality_consent')))
+                        and bool(st.session_state.get('research_confirmed')) and bool(flow.get('consent')))
             gateway=_AccountedGateway(lambda:make_gateway(live=True),reservation,current)
             with st.spinner('正在核对日常偏好和原文依据…'):
                 profile=personality.analyze_personality(conversation.state.messages,gateway)
             state.record_profile(profile)
+            flow['page']='results'
             st.rerun()
         except ModelCallError:
             state.profile_error='unavailable'
+            flow['page']='results'
             st.rerun()
         finally:
             if gateway and hasattr(gateway,'close'): gateway.close()
             if reservation: reservation.release()
-    st.caption(f'每次最多两次请求；与自动对话观察共用每会话6次额外请求额度，已使用{observation.request_count}次。未知和矛盾会保留。一时情绪不能证明固定性格。')
-    show_profile(conversation)
-    with st.expander('补充八题偏好自述 · 本机计算'):
-        st.caption('原创、非标准化的自我探索问题，没有好坏答案，可以选择“看情况”。不会发送给模型。')
-        with st.form(prefix+'self_report'):
-            answers={}
-            for question in QUESTION_ITEMS:
-                values=['unknown',question.left_pole,question.right_pole]
-                labels={'unknown':CHOICE_UNSURE,question.left_pole:question.left_label,question.right_pole:question.right_label}
-                old=state.self_answers.get(question.id,'unknown')
-                answers[question.id]=st.radio(question.prompt,values,index=values.index(old),format_func=lambda value,labels=labels:labels[value],key=prefix+'preference_'+question.id,disabled=not allowed)
-            submitted=st.form_submit_button('保存偏好自述',key='save_personality_self_report',disabled=not allowed)
-        if submitted:
-            state.self_answers=dict(answers)
-            st.rerun()
-    if state.self_answers:
-        st.markdown('#### 你在原创问答中的偏好')
-        for axis,pole in score_self_report(state.self_answers).items():
-            label='两端都有，暂不归类' if pole=='mixed' else '待补充' if pole=='unknown' else pole
-            st.write(AXIS_LABELS[axis][0]+'：'+label)
-    with st.expander('我的自我确认 · 可以留空'):
-        st.caption('这是你自行认可的偏好，不是模型给你的结论；与对话线索不同也没关系。')
-        for axis,labels in AXIS_LABELS.items():
-            options=['unknown',*axis]
-            display={'unknown':'暂不确认',axis[0]:labels[1],axis[1]:labels[2]}
-            old=state.confirmations.get(axis,'unknown')
-            value=st.selectbox(labels[0],options,index=options.index(old),format_func=lambda v,display=display:display[v],key=prefix+'confirm_'+axis,disabled=not allowed)
-            state.confirmations[axis]=value
-    own=confirmed_type(state.confirmations)
-    if own: st.success('你自行确认的偏好：'+own+'。它可以随着你的理解继续调整。')
-    if state.profile or state.self_answers or own:
-        st.download_button('导出性格探索记录',data=export_personality_report(state,conversation.state.messages),file_name='personality-exploration.md',mime='text/markdown',key='download_personality',on_click='ignore')
+    st.caption(f'每次最多两次请求；与自动对话观察共用每会话6次额外请求额度，已使用{observation.request_count}次。')
+    button('上一步','analyze_previous','connection')

@@ -53,73 +53,42 @@ def test_ipip50_official_key_and_direction():
     assert '情绪稳定' in q.interpretation and '负性情绪' in q.interpretation
     assert '公共领域' in q.license_notice and '未经' in q.translation_note
 
-def test_ui_shared_items_keep_versions_and_relationship_widgets_separate(monkeypatch):
-    from streamlit.testing.v1 import AppTest
-    import support_agent.questionnaire_ui as ui
-    downloads=[]
-    original=ui.st.download_button
-    def capture(*args,**kwargs):
-        downloads.append(kwargs['data'])
-        return original(*args,**kwargs)
-    monkeypatch.setattr(ui.st,'download_button',capture)
-    app=AppTest.from_string('''
-import streamlit as st
-from types import SimpleNamespace
-from support_agent.exploration_state import ExplorationState
-from support_agent.research_wellbeing_tests import SWLS
-from support_agent.questionnaire_ui import render_questionnaire
-if 'conversation' not in st.session_state:
-    st.session_state.conversation=SimpleNamespace(id='test', exploration=ExplorationState())
-version=st.selectbox('version',['zh-v1:key-v1','zh-v2:key-v2'],key='version')
-render_questionnaire(st.session_state.conversation,SWLS,True,version_id=version)
-''').run()
-    assert not app.exception
-    first_keys=[s.key for s in app.selectbox if '_item_swls_' in s.key]
-    for key in first_keys: app.selectbox(key=key).select(4)
-    app.button(key='calculate_survey').click().run()
-    assert not app.exception
-    state=app.session_state['conversation'].exploration
-    assert state.survey_results['zh-v1:key-v1'].version_id=='zh-v1:key-v1'
+def test_ui_shared_items_keep_versions_and_relationship_widgets_separate():
+    from tests.test_questionnaire_wizard import questionnaire_app, start
+    app=start(questionnaire_app(versions=True))
+    first_key=app.selectbox[1].key
+    app.selectbox[1].select(4).run()
     app.selectbox(key='version').select('zh-v2:key-v2').run()
-    second_keys=[s.key for s in app.selectbox if '_item_swls_' in s.key]
-    assert set(first_keys).isdisjoint(second_keys)
-    assert all(app.selectbox(key=k).value is None for k in second_keys)
-    for key in second_keys: app.selectbox(key=key).select(2)
-    app.button(key='calculate_survey').click().run()
-    state=app.session_state['conversation'].exploration
-    assert state.survey_results['zh-v1:key-v1'].dimensions['life_satisfaction'].total==20
-    assert state.survey_results['zh-v2:key-v2'].dimensions['life_satisfaction'].total==10
-    assert state.survey_contexts=={'zh-v1:key-v1':'','zh-v2:key-v2':''}
-    assert any('zh-v2:key-v2' in c.value for c in app.caption)
-    assert '版本：zh-v2:key-v2' in downloads[-1]
-    assert '版本：zh-v1:key-v1' in downloads[0]
+    app.button(key='survey_start').click().run()
+    second_key=app.selectbox[1].key
+    assert first_key != second_key
+    assert app.selectbox[1].value is None
+    app.selectbox(key='version').select('zh-v1:key-v1').run()
+    assert app.selectbox[1].value==4
+
 
 def test_ui_attachment_relationship_switch_clears_new_answers():
-    from streamlit.testing.v1 import AppTest
-    app=AppTest.from_string('''
-import streamlit as st
-from types import SimpleNamespace
-from support_agent.exploration_state import ExplorationState
-from support_agent.attachment_questions import ATTACHMENT_EXPLORATION
-from support_agent.questionnaire_ui import render_questionnaire
-if 'conversation' not in st.session_state:
-    st.session_state.conversation=SimpleNamespace(id='test', exploration=ExplorationState())
-render_questionnaire(st.session_state.conversation,ATTACHMENT_EXPLORATION,True,version_id='attachment:v1')
-''').run()
-    app.selectbox(key='explore_test_attachment_context_attachment:v1').select('亲密伴侣').run()
-    first=[s.key for s in app.selectbox if '_item_' in s.key]
-    for key in first: app.selectbox(key=key).select(4)
-    app.button(key='calculate_survey').click().run()
-    app.selectbox(key='explore_test_attachment_context_attachment:v1').select('亲近朋友').run()
-    second=[s.key for s in app.selectbox if '_item_' in s.key]
-    assert not app.exception and set(first).isdisjoint(second)
-    assert all(app.selectbox(key=k).value is None for k in second)
-    assert app.session_state['conversation'].exploration.survey_contexts['attachment:v1']=='亲密伴侣'
-    assert any('关系对象已切换' in w.value for w in app.warning)
+    from tests.test_questionnaire_wizard import questionnaire_app, start
+    app=start(questionnaire_app('ATTACHMENT_EXPLORATION','attachment_questions'))
+    assert len(app.selectbox)==1
+    app.selectbox[0].select('亲密伴侣').run()
+    app.button(key='survey_next').click().run()
+    first_key=app.selectbox[0].key
+    app.selectbox[0].select(4).run()
+    app.button(key='survey_prev').click().run()
+    app.selectbox[0].select('亲近朋友').run()
+    app.button(key='survey_next').click().run()
+    assert app.selectbox[0].key != first_key
+    assert app.selectbox[0].value is None
+    app.button(key='survey_prev').click().run()
+    app.selectbox[0].select('亲密伴侣').run()
+    app.button(key='survey_next').click().run()
+    assert app.selectbox[0].value==4
+
 
 def test_attachment_context_does_not_leak_between_conversations():
     from streamlit.testing.v1 import AppTest
-    app=AppTest.from_string('''
+    app=AppTest.from_string("""
 import streamlit as st
 from types import SimpleNamespace
 from support_agent.exploration_state import ExplorationState
@@ -129,12 +98,13 @@ if 'conversations' not in st.session_state:
     st.session_state.conversations={k:SimpleNamespace(id=k,exploration=ExplorationState()) for k in ('first','second')}
 active=st.selectbox('Conversation',['first','second'],key='active')
 render_questionnaire(st.session_state.conversations[active],ATTACHMENT_EXPLORATION,True,version_id='attachment:v1')
-''').run()
-    relation=next(s for s in app.selectbox if s.label=='这次想到哪段关系？')
+""").run()
+    app.checkbox(key='survey_research').check().run()
+    app.button(key='survey_start').click().run()
+    relation=app.selectbox[1]
     first_key=relation.key
     relation.select('亲密伴侣').run()
     app.selectbox(key='active').select('second').run()
-    relation=next(s for s in app.selectbox if s.label=='这次想到哪段关系？')
-    assert relation.value is None
-    assert relation.key!=first_key
-    assert relation.key.startswith('explore_second_')
+    app.button(key='survey_start').click().run()
+    assert app.selectbox[1].value is None
+    assert app.selectbox[1].key != first_key

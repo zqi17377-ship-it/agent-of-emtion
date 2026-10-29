@@ -55,10 +55,13 @@ docs/superpowers/specs/2026-10-22-mental-support-agent-design.md
 docs/superpowers/specs/2026-10-29-chat-experience-design.md
 docs/superpowers/specs/2026-10-29-conversational-exploration-design.md
 docs/superpowers/specs/2026-10-29-personality-exploration-design.md
+docs/superpowers/specs/2026-10-30-guided-flows-design.md
 docs/v02-release.md
 docs/v03-verification.md
 docs/v04-progress.md
 docs/v04-release.md
+docs/v05-progress.md
+docs/v05-release.md
 policies/actions.json
 policies/fallbacks.json
 policies/help_resources.json
@@ -88,6 +91,7 @@ support_agent/conversations.py
 support_agent/exploration_catalog.py
 support_agent/exploration_state.py
 support_agent/exploration_ui.py
+support_agent/flow_ui.py
 support_agent/guardrails.py
 support_agent/knowledge.py
 support_agent/long_personality_tests.py
@@ -95,6 +99,7 @@ support_agent/model_client.py
 support_agent/observation_jobs.py
 support_agent/observation_scheduler.py
 support_agent/observation_ui.py
+support_agent/onboarding_ui.py
 support_agent/personality.py
 support_agent/personality_questions.py
 support_agent/personality_ui.py
@@ -127,6 +132,7 @@ tests/test_exploration_catalog.py
 tests/test_exploration_state.py
 tests/test_exploration_ui.py
 tests/test_guardrails.py
+tests/test_guided_entry.py
 tests/test_knowledge.py
 tests/test_live_smoke.py
 tests/test_model_client.py
@@ -134,11 +140,14 @@ tests/test_observation_integration.py
 tests/test_observation_jobs.py
 tests/test_observation_scheduler.py
 tests/test_observation_ui.py
+tests/test_observation_wizard.py
 tests/test_personality.py
 tests/test_personality_questions.py
+tests/test_personality_wizard.py
 tests/test_policy.py
 tests/test_psychometrics.py
 tests/test_published_personality_tests.py
+tests/test_questionnaire_wizard.py
 tests/test_session_privacy.py
 tests/test_survey_registry.py
 tests/test_usage.py

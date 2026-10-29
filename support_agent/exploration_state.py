@@ -10,6 +10,7 @@ AXIS_LABELS={'EI':('社交能量','E · 互动中充电','I · 独处中恢复')
 
 @dataclass
 class ExplorationState:
+    flows: dict[str,dict] = field(default_factory=dict)
     observation: ObservationState = field(default_factory=ObservationState)
     profile: PersonalityProfile | None = None
     profile_error: str | None = None

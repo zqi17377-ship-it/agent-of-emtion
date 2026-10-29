@@ -15,6 +15,7 @@ DIRECTION_LABELS={'higher':'有较多相关线索','lower':'有较少相关线�
 def open_observation():
     st.session_state['workspace_view']='exploration'
     st.session_state['exploration_tool']='conversation_observation'
+    st.session_state['feature_flow_active']=True
 
 
 def revoke_observation_consents():
@@ -24,14 +25,13 @@ def revoke_observation_consents():
             configure_observation(c.exploration.observation,'off',())
             prefix='explore_'+c.id+'_observe_'
             st.session_state[prefix+'consent']=False
-
-
-def _sync_settings(conversation,prefix):
-    state=conversation.exploration.observation
-    consent=bool(st.session_state.get(prefix+'consent')) and bool(st.session_state.get('research_confirmed'))
-    mode=st.session_state.get(prefix+'mode','manual') if consent else 'off'
-    domains=tuple(st.session_state.get(prefix+'domains',list(DOMAIN_LABELS)))
-    configure_observation(state,mode,domains)
+            draft=c.exploration.flows.get('observation_setup')
+            if draft: draft.update(consent=False,page='setup',step=0)
+            personality=c.exploration.flows.get('personality')
+            if personality: personality.update(consent=False,page='scope')
+            st.session_state.pop('personality_'+c.id+'_consent',None)
+            for key in list(st.session_state):
+                if key.startswith(prefix) and key.endswith('consent'): st.session_state[key]=False
 
 
 def _authorized(c,readiness):
@@ -75,49 +75,125 @@ def render_observation_monitor(readiness):
 
 
 def render_observation_panel(c,allowed,readiness):
+    from .flow_ui import step_header,research_checkbox,api_checkbox
     state=c.exploration.observation
     prefix='explore_'+c.id+'_observe_'
-    st.markdown('### 让对话积累可核对的线索')
-    st.write('先倾听，再按你的选择整理性格和关系观察。每个方向都会附原话，信息不足就暂不判断。')
-    st.checkbox('同意分析本对话的用户文字，知悉会额外调用 DeepSeek',value=state.mode!='off',key=prefix+'consent',disabled=not allowed,on_change=_sync_settings,args=(c,prefix))
-    st.selectbox('分析方式',['manual','auto'],index=1 if state.mode=='auto' else 0,format_func=MODE_LABELS.get,key=prefix+'mode',disabled=not allowed,on_change=_sync_settings,args=(c,prefix))
-    st.multiselect('允许分析的主题',list(DOMAIN_LABELS),default=list(state.domains or DOMAIN_LABELS),format_func=DOMAIN_LABELS.get,key=prefix+'domains',disabled=not allowed,on_change=_sync_settings,args=(c,prefix))
-    st.caption('自动模式：20条有效用户消息且累计至少1,000字后检查；之后每新增10条复查，最多3次。轮数是产品参数，不代表已经测准。')
-    st.caption('每段对话的手动、自动和格式修复合计最多6次额外请求；只分析已选择的主题。支持对话的请求另计。')
-    if not allowed: st.info('请先确认成年人虚构案例的研究使用范围。')
-    elif c.gateway_mode!='live': st.info('连接 DeepSeek 并确认数据流向与费用后，才能整理对话；问卷仍可在本机作答。')
+    widget=prefix+'wizard_'
+    draft=c.exploration.flows.setdefault('observation_setup',{'step':0,'domains':list(state.domains or DOMAIN_LABELS),'mode':state.mode if state.mode!='off' else 'manual','consent':False,'page':'done' if state.mode!='off' else 'setup'})
+    if state.mode!='off':
+        if st.button('暂停并撤回对话观察同意',key='observation_revoke'):
+            configure_observation(state,'off',())
+            draft.update(consent=False,page='setup',step=0)
+            st.session_state.pop(widget+'consent',None)
+            st.rerun()
+    page=draft.get('page','setup')
+    if page!='setup':
+        if page=='done':
+            st.markdown('### 对话探索已启用' if state.mode!='off' else '### 对话探索已暂停')
+            st.write('当前方式：'+MODE_LABELS[state.mode])
+            st.caption(f'额外请求 {state.request_count} / 6 · 已报告token {state.total_tokens}')
+            for target,key,label in [('setup','observation_modify','修改设置'),('relations','observation_relations','管理关系对象'),('annotations','observation_annotations','逐条消息标注'),('report','observation_report','查看观察报告')]:
+                if st.button(label,key=key):
+                    draft['page']=target
+                    if target=='setup': draft['step']=0;draft['consent']=False;st.session_state.pop(widget+'consent',None)
+                    st.rerun()
+        else:
+            if st.button('返回探索状态',key='observation_done'):
+                draft['page']='done';st.rerun()
+            if page=='relations': _render_relations(c,allowed,prefix)
+            elif page=='annotations': _render_annotations(c,prefix)
+            else: _render_report(c,readiness,prefix)
+        return
+    steps=['了解范围','连接与API费用','选择主题','选择整理方式','同意并确认启用']
+    index=draft['step']
+    step_header('从对话探索自己',steps,index)
+    valid=True
+    if index==0:
+        st.write('先倾听，再整理可核对的性格和关系线索。探索性观察不是心理诊断，信息不足时暂不判断。')
+        valid=research_checkbox(widget+'research')
+    elif index==1:
+        st.write('此功能使用 DeepSeek 分析你允许的用户文字，会产生额外调用费用。密钥仅由本机配置读取。')
+        st.caption('连接配置已就绪' if readiness.ready else '连接配置尚未就绪，请先在本机完成配置。')
+        mixed=c.gateway_mode!='live' and bool(c.state.messages)
+        if mixed: st.info('此对话已有演示消息，请先新开对话，再选择 DeepSeek 连接。')
+        valid=api_checkbox(widget+'api') and readiness.ready and not mixed
+        if valid and c.gateway_mode!='live':
+            c.gateway_mode='live'
+            st.session_state['mode_selector']='DeepSeek API'
+    elif index==2:
+        draft['domains']=st.multiselect('允许分析的主题',list(DOMAIN_LABELS),default=draft['domains'],format_func=DOMAIN_LABELS.get,key=widget+'domains')
+        valid=bool(draft['domains'])
+    elif index==3:
+        draft['mode']=st.selectbox('分析方式',['manual','auto'],index=1 if draft['mode']=='auto' else 0,format_func=MODE_LABELS.get,key=widget+'mode')
+        st.caption('自动模式：20条有效用户消息且累计至少1,000字后检查；之后每新增10条复查，最多3次。')
+        st.caption('手动、自动和格式修复合计最多6次额外请求；支持对话的请求另计。')
+    else:
+        st.write('主题：'+'、'.join(DOMAIN_LABELS[x] for x in draft['domains']))
+        st.write('整理方式：'+MODE_LABELS[draft['mode']])
+        draft['consent']=st.checkbox('同意分析本对话的用户文字，知悉会额外调用 DeepSeek',value=draft['consent'],key=widget+'consent')
+        if st.button('确认启用对话探索',key='observation_confirm',type='primary',disabled=not draft['consent'] or not _authorized(c,readiness)):
+            configure_observation(state,draft['mode'],tuple(draft['domains']))
+            draft['page']='done';st.rerun()
+    if index>0 and st.button('上一步',key='observation_back'):
+        draft['step']-=1;st.rerun()
+    if index<4 and st.button('下一步',key='observation_next',type='primary',disabled=not valid):
+        draft['step']+=1;st.rerun()
+
+
+def _render_relations(c,allowed,prefix):
+    state=c.exploration.observation
+    st.markdown('### 管理关系对象')
+    st.caption('依恋观察需要明确是哪段关系。这里使用匿名代号；两位朋友分别建立对象。')
+    kind=st.selectbox('新增关系类别',list(RELATIONS),format_func=RELATIONS.get,key=prefix+'new_relation_kind')
+    if st.button('添加匿名关系',key=prefix+'add_relation',disabled=not allowed or len(state.relations)>=12):
+        index=1
+        while f'{kind}_{index}' in state.relations: index+=1
+        state.relations[f'{kind}_{index}']=kind
+        state.observation_revision+=1
+        st.rerun()
+    if state.relations:
+        for relation_id,kind in state.relations.items():
+            st.write(RELATIONS.get(kind,'关系')+' · '+relation_id)
+        st.caption('对象已保留。返回探索状态后，可进入逐条消息标注。')
+    else: st.info('先添加一个匿名关系对象，再返回探索状态进入逐条消息标注。')
+
+
+def _render_annotations(c,prefix):
+    state=c.exploration.observation
+    st.markdown('### 逐条消息标注')
+    users=[m for m in c.state.messages if m.role=='user']
+    if not state.relations:
+        st.info('还没有关系对象。请返回探索状态，进入管理关系对象添加匿名对象。')
+        return
+    if not users:
+        st.info('当前还没有你的消息。请先回到对话，说说与这段关系有关的日常例子，再来标注。')
+        return
+    if users and state.relations:
+        ids=[m.id for m in users]
+        texts={m.id:m.content for m in users}
+        mid=st.selectbox('选择本人谈到关系的消息',ids,format_func=lambda key:texts[key][:60],key=prefix+'relation_message')
+        rid=st.selectbox('这条消息主要谈到的对象',['',*state.relations],format_func=lambda key:'暂不指定' if not key else RELATIONS.get(state.relations[key],'关系')+' · '+key,key=prefix+'relation_object')
+        if st.button('保存这条关系标注',key=prefix+'save_relation'):
+            if rid: state.message_relations[mid]=rid
+            else: state.message_relations.pop(mid,None)
+            state.observation_revision+=1
+            st.rerun()
+        st.caption('同一条消息混合多个对象时，请拆开叙述或暂不指定，不用这条消息建立某一关系的结论。')
+
+
+def _render_report(c,readiness,prefix):
+    state=c.exploration.observation
+    st.markdown('### 观察报告')
     count,chars=count_candidates(c.state.messages)
-    st.caption(f'当前候选消息 {count} 条 · 非空白内容 {chars} 字 · 额外请求 {state.request_count} / 6 · 已报告token {state.total_tokens}')
-    if sum(len(m.content) for m in c.state.messages)>14000:
-        st.warning('当前对话接近字符上限。可主动查看现有线索、导出或另开对话；不会静默删除历史。')
+    st.caption(f'当前候选消息 {count} 条 · 非空白内容 {chars} 字 · 额外请求 {state.request_count} / 6')
     reason=eligibility_reason(state,c.state.messages,manual=True,live=c.gateway_mode=='live',authorized=_authorized(c,readiness),paused=exploration_paused(c.state.previous_decision))
     if st.button('整理当前对话线索',key='analyze_observations',type='primary',disabled=reason is not None):
         start_observation(state,c.state.messages,c.id,lambda:make_gateway(live=True),manual=True,authorized=_authorized(c,readiness),live=c.gateway_mode=='live',paused=exploration_paused(c.state.previous_decision))
         st.rerun()
-    if reason=='unchanged': st.caption('当前资料已尝试整理；有新的日常例子或关系标注后可再次查看。')
-    if reason=='budget': st.info('本对话的额外请求额度已用完。仍可填写本机问卷和查看已有观察。')
+    if reason=='unchanged': st.caption('当前资料已尝试整理；补充新例子后可再次查看。')
+    if reason=='budget': st.info('本对话的额外请求额度已用完。仍可查看已有观察。')
     if state.error_code: st.warning('这次整理未完成，已有观察保留；没有自动无限重试。')
-    with st.expander('标注关系对象 · 可选'):
-        st.caption('依恋观察需要明确是哪段关系。这里使用匿名代号；两位朋友分别建立对象。')
-        kind=st.selectbox('新增关系类别',list(RELATIONS),format_func=RELATIONS.get,key=prefix+'new_relation_kind')
-        if st.button('添加匿名关系',key=prefix+'add_relation',disabled=not allowed or len(state.relations)>=12):
-            index=1
-            while f'{kind}_{index}' in state.relations: index+=1
-            state.relations[f'{kind}_{index}']=kind
-            state.observation_revision+=1
-            st.rerun()
-        users=[m for m in c.state.messages if m.role=='user']
-        if users and state.relations:
-            ids=[m.id for m in users]
-            texts={m.id:m.content for m in users}
-            mid=st.selectbox('选择本人谈到关系的消息',ids,format_func=lambda key:texts[key][:60],key=prefix+'relation_message')
-            rid=st.selectbox('这条消息主要谈到的对象',['',*state.relations],format_func=lambda key:'暂不指定' if not key else RELATIONS.get(state.relations[key],'关系')+' · '+key,key=prefix+'relation_object')
-            if st.button('保存这条关系标注',key=prefix+'save_relation'):
-                if rid: state.message_relations[mid]=rid
-                else: state.message_relations.pop(mid,None)
-                state.observation_revision+=1
-                st.rerun()
-            st.caption('同一条消息混合多个对象时，请拆开叙述或暂不指定，不用这条消息建立某一关系的结论。')
+    if state.report is None: st.info('尚未生成观察报告。')
     report=state.report
     if report:
         if state.is_stale(c.state.messages): st.warning('对话或标注已更新；下面保留上次快照的观察，等待下一次整理。')
@@ -134,7 +210,3 @@ def render_observation_panel(c,allowed,readiness):
                 for column,action,label in zip(columns,('disagree','state','delete'),('不认同','只谈本次感受','删除观察')):
                     column.button(label,key=prefix+action+'_'+observation.key,on_click=correct_observation,args=(state,observation.key,action),type='tertiary')
         st.download_button('导出对话观察记录',data=export_observation_report(c),file_name='conversation-observations.md',mime='text/markdown',key='download_observations',on_click='ignore')
-    with st.expander('想补充一些例子？'):
-        st.write('这是这次事件的反应，还是在其他场合也经常发生？')
-        st.write('对方没有马上回复时，你通常会怎样理解，后来会怎么做？')
-        st.caption('可以回到对话补充，也可以跳过。当前情绪不能证明固定性格。')

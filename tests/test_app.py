@@ -9,9 +9,21 @@ def launch():
 
 
 def chat(app,text='这是虚构案例，想聊聊工作。'):
-    app.checkbox(key='research_confirmed').check().run()
+    prepare(app)
     app.chat_input[0].set_value(text).run()
     assert not app.exception
+    return app
+
+
+def prepare(app):
+    if any(b.key=='home_chat' for b in app.button): app.button(key='home_chat').click().run()
+    elif any(b.key=='prepare_chat' for b in app.button): app.button(key='prepare_chat').click().run()
+    else: return app
+    if any(b.key=='chat_setup_next' for b in app.button):
+        app.button(key='chat_setup_next').click().run()
+        app.checkbox(key='chat_setup_research').check().run()
+        app.button(key='chat_setup_next').click().run()
+        app.button(key='chat_setup_finish').click().run()
     return app
 
 
@@ -25,7 +37,7 @@ def test_page_mock_conversation_and_clear():
 
 
 def test_starter_fills_composer_without_sending():
-    app=launch()
+    app=prepare(launch())
     app.button(key='starter_pressure').click().run()
     assert not app.exception
     assert app.chat_input[0].value
@@ -59,13 +71,15 @@ def test_feedback_does_not_call_model_again(monkeypatch):
 def test_mode_switch_preserves_previous_chat():
     app=launch(); chat(app)
     old=app.session_state['workspace'].active.id
-    app.radio(key='mode_selector').set_value('DeepSeek API').run()
+    app.button(key='chat_connection_settings').click().run()
+    app.radio(key='chat_setup_mode').set_value('DeepSeek API').run()
+    app.button(key='chat_setup_next').click().run()
     assert not app.exception
     assert app.chat_input[0].disabled
     assert len(app.session_state['workspace'].items)==2
     app.button(key='conversation_'+old).click().run()
     assert len(app.chat_message)==2
-    assert app.radio(key='mode_selector').value=='离线演示'
+    assert app.session_state['mode_selector']=='离线演示'
 
 
 def test_rejected_turn_is_visible_without_corrupting_previous_reply(monkeypatch):

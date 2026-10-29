@@ -9,10 +9,10 @@ from .model_client import make_gateway
 from .schemas import EligibilityContext,ModelCallError,TurnResult
 from .exploration_state import ExplorationState
 from .exploration_ui import render_exploration,purge_exploration_controls
-from .observation_ui import render_observation_entry,render_observation_monitor,revoke_observation_consents
+from .observation_ui import render_observation_entry,render_observation_monitor
 from .observation_scheduler import ObservationState,configure_observation
+from .onboarding_ui import render_home,render_chat_setup,go_home,begin_chat_setup
 
-MODES={'离线演示':'mock','DeepSeek API':'live'}
 ACTION_LABELS={'listen':'先听你说','clarify':'慢慢了解','support':'一起梳理','refer':'专业求助建议','urgent_support':'当前支持指引'}
 STARTERS=[('pressure','工作压力','从最累的那件事开始','这是成年人虚构案例：最近工作任务很多，我想先说说感受，不急着要建议。'),('sleep','睡眠困扰','说说最近的夜晚','这是成年人虚构案例：最近睡得不太好，白天有些疲惫，想一起梳理。'),('listen','只想倾诉','先被听见，也很好','这是成年人虚构案例：今天有点低落，我只想有人听我说，暂时不需要建议。')]
 
@@ -23,10 +23,12 @@ def workspace():
 
 def reset_draft():
     st.session_state['composer']=''
-    st.session_state['workspace_view']='chat'
+    st.session_state['workspace_view']='home'
+    st.session_state['feature_flow_active']=False
     st.session_state.pop('saved_composer',None)
     st.session_state.pop('attachment_context',None)
     st.session_state.pop('notice',None)
+    st.session_state.pop('setup_return',None)
 
 
 def new_chat():
@@ -41,27 +43,12 @@ def select_chat(cid):
     c=workspace().select(cid)
     st.session_state['mode_selector']='DeepSeek API' if c.gateway_mode=='live' else '离线演示'
     reset_draft()
+    if c.state.messages: st.session_state['workspace_view']='chat'
 
 
 def clear_current():
     purge_exploration_controls(workspace().active.id)
     workspace().clear_active()
-    reset_draft()
-
-
-def change_mode():
-    mode=MODES[st.session_state['mode_selector']]
-    c=workspace().active
-    if mode==c.gateway_mode: return
-    configure_observation(c.exploration.observation,'off',())
-    if c.state.messages:
-        try: workspace().new_conversation(gateway_mode=mode)
-        except ValueError:
-            st.session_state['mode_selector']='DeepSeek API' if c.gateway_mode=='live' else '离线演示'
-            st.session_state['notice']='会话已满，请先在会话管理中移除一个对话，再切换模式。'
-            return
-    else:
-        c.gateway_mode=mode
     reset_draft()
 
 
@@ -80,10 +67,6 @@ def delete_current():
     st.session_state['mode_selector']='DeepSeek API' if c.gateway_mode=='live' else '离线演示'
     st.session_state.pop('confirm_delete',None)
     reset_draft()
-
-
-def toggle_exploration():
-    st.session_state['workspace_view']='chat' if st.session_state.get('workspace_view')=='exploration' else 'exploration'
 
 
 def turn_caption(result):
@@ -112,6 +95,9 @@ def initialize():
             conversation.exploration=ExplorationState()
         if not hasattr(conversation.exploration,'observation'):
             conversation.exploration.observation=ObservationState()
+        if not hasattr(conversation.exploration,'flows'):
+            conversation.exploration.flows={}
+    st.session_state.setdefault('workspace_view','home')
     if 'mode_selector' not in st.session_state:
         st.session_state['mode_selector']='DeepSeek API' if workspace().active.gateway_mode=='live' else '离线演示'
 
@@ -136,27 +122,7 @@ def render_sidebar():
                     st.session_state.pop('confirm_delete',None)
                     st.rerun()
         st.toggle('显示研究记录',key='show_research',value=False,help='查看软件动作与原文依据；这些记录不是诊断报告。')
-        st.markdown('<div class="sidebar-footnote">研究预览 v0.4<br>仅限成年人虚构案例</div>',unsafe_allow_html=True)
-
-
-def render_permissions(readiness):
-    live=workspace().active.gateway_mode=='live'
-    enabled=bool(st.session_state.get('research_confirmed')) and (not live or bool(st.session_state.get('api_consent')) and readiness.ready)
-    label=('DeepSeek' if live else '离线演示')+' · 连接与使用范围'+(' · 已确认' if enabled else ' · 开始前确认')
-    with st.expander(label,expanded=not enabled):
-        st.radio('对话模式',list(MODES),horizontal=True,key='mode_selector',on_change=change_mode)
-        if live:
-            if readiness.ready:
-                st.caption('本机 DeepSeek 配置已就绪。发送消息、主动分析，或已授权的自动对话观察会调用API。')
-            else:
-                messages={'missing_key':'尚未填写 API 密钥。请在本机 .env 填写后点击下方重新检查。','invalid_endpoint':'接口地址需要使用 DeepSeek 官方地址，请检查本机配置。','config_unreadable':'本机配置暂时无法读取，请检查文件编码和访问权限。'}
-                st.warning(messages.get(readiness.error_code,'请检查本机 API 配置。'))
-                st.button('重新检查配置',key='recheck_configuration')
-        st.checkbox('我只输入成年人虚构案例',key='research_confirmed',on_change=revoke_observation_consents)
-        if live:
-            st.checkbox('允许发送对话上下文至 DeepSeek，并知悉调用费用',key='api_consent',on_change=revoke_observation_consents)
-        st.caption('尚未完成专业审核。这里提供研究演示，不作诊断或治疗。')
-    return enabled
+        st.markdown('<div class="sidebar-footnote">研究预览 v0.5<br>仅限成年人虚构案例</div>',unsafe_allow_html=True)
 
 
 def render_welcome():
@@ -170,14 +136,14 @@ def render_welcome():
                 st.caption(description)
 
 
-def render_composer(c,w,enabled):
+def render_composer(c,w,enabled,allow_send=True):
     observation=c.exploration.observation
     relation_key='explore_'+c.id+'_observe_next_relation'
-    if observation.mode!='off' and 'attachment' in observation.domains and observation.relations:
+    if allow_send and observation.mode!='off' and 'attachment' in observation.domains and observation.relations:
         st.selectbox('本条消息谈到的关系对象（可留空）',['',*observation.relations],format_func=lambda key:'暂不指定' if not key else key,key=relation_key)
     placeholder='从你想说的那件事开始…' if enabled else '先完成上方确认，就可以开始了…'
     text=st.chat_input(placeholder,key='composer',disabled=not enabled,max_chars=5000)
-    if text:
+    if text and allow_send:
         gateway=None
         try:
             gateway=make_gateway(c.gateway_mode=='live')
@@ -205,15 +171,21 @@ def render():
     render_sidebar()
     w=workspace(); c=w.active
     readiness=configuration_readiness()
+    view=st.session_state.get('workspace_view','home')
+    enabled=bool(st.session_state.get('research_confirmed')) and (c.gateway_mode!='live' or bool(st.session_state.get('api_consent')) and readiness.ready)
     with st.container(key='brandbar'):
         left,right=st.columns([4,1],vertical_alignment='center')
         with left: st.markdown('<div class="main-brand"><span class="brand-mark">心</span><b>知心</b><span class="brand-description">倾听 · 梳理 · 陪伴</span></div>',unsafe_allow_html=True)
-        with right: st.button('返回对话' if st.session_state.get('workspace_view')=='exploration' else '心理探索',icon=':material/psychology:',key='open_exploration',on_click=toggle_exploration,width='stretch')
-    if st.session_state.get('workspace_view')=='exploration':
-        enabled=render_permissions(readiness)
-        render_exploration(c,bool(st.session_state.get('research_confirmed')),readiness)
+        with right:
+            if view!='home': st.button('功能首页',icon=':material/home:',key='open_exploration',on_click=go_home,width='stretch')
+    if view!='chat':
+        if view=='home': render_home()
+        elif view=='chat_setup': render_chat_setup(readiness)
+        else: render_exploration(c,bool(st.session_state.get('research_confirmed')),readiness)
         render_observation_monitor(readiness)
-        render_composer(c,w,enabled)
+        # Keep the frontend chat draft mounted while only the active flow is visible.
+        st.html('<style>[data-testid="stBottom"]{display:none!important}</style>')
+        render_composer(c,w,enabled,allow_send=False)
         return
     with st.container(key='chat_toolbar'):
         title,actions,export=st.columns([4,1.15,1.15],vertical_alignment='center')
@@ -244,7 +216,13 @@ def render():
             st.caption('当前对话仅在本页保留。')
             st.button('清空本轮',key='clear_current',type='tertiary',icon=':material/delete_sweep:',on_click=clear_current)
     render_observation_entry(c)
-    enabled=render_permissions(readiness)
+    if not enabled:
+        st.info('还差一点准备，就可以开始对话。')
+        st.button('完成开始前准备',key='prepare_chat',on_click=begin_chat_setup,type='primary')
+    else:
+        with st.container(horizontal=True):
+            st.caption('DeepSeek 已连接' if c.gateway_mode=='live' else '离线演示 · 固定示例回复')
+            st.button('连接设置',key='chat_connection_settings',on_click=begin_chat_setup,type='tertiary')
     render_observation_monitor(readiness)
     if c.gateway_mode=='mock':
         st.markdown('<div class="mode-note"><span>演示模式</span> 使用固定示例回复；切换 DeepSeek 后可体验真实对话。</div>',unsafe_allow_html=True)
