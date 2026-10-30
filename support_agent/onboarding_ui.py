@@ -1,6 +1,7 @@
 """Feature home and the two-screen DeepSeek chat preparation journey."""
 import streamlit as st
 from .flow_ui import step_header,research_checkbox,api_checkbox
+from .api_settings_ui import open_api_settings
 
 
 def go_home():
@@ -60,10 +61,10 @@ def render_chat_setup(readiness):
         if st.button('下一步',key='chat_setup_next',disabled=not confirmed,type='primary'): flow['step']=1;st.rerun()
     else:
         st.markdown('#### 确认 DeepSeek 连接')
-        if readiness.ready: st.success('DeepSeek 连接配置已就绪。')
+        if readiness.ready: st.success('本次会话的 DeepSeek API 配置已就绪。')
         else:
-            st.warning('请先在本机填写 DeepSeek API 配置，再重新检查。')
-            st.button('重新检查配置',key='chat_setup_recheck')
+            st.warning('请先打开 API 设置，填写你自己的 DeepSeek 密钥与模型名称。')
+        st.button('打开 API 设置',key='api_setup_settings',on_click=open_api_settings)
         api=api_checkbox('chat_setup_api')
         enabled=bool(st.session_state.get('research_confirmed')) and api and readiness.ready and c.gateway_mode=='live'
         st.caption('发送消息会产生API请求；额外的对话探索需要单独启用。配置就绪不代表已验证API可用。')

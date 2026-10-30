@@ -6,6 +6,7 @@ from .schemas import ModelCallError
 from .exploration_state import AXIS_LABELS,export_personality_report
 from .personality_questions import QUESTION_ITEMS,CHOICE_UNSURE,score_self_report,confirmed_type,describe_self_report
 from .observation_jobs import _AccountedGateway
+from .session_connection import get_session_settings
 
 
 def show_profile(conversation):
@@ -130,8 +131,8 @@ def render_personality(conversation,allowed,readiness):
         st.write('连接已就绪' if conversation.gateway_mode=='live' and readiness.ready else '对话分析需要先连接 DeepSeek；本机问答无需连接。')
         api=api_checkbox(prefix+'api')
         if st.button('设置模型连接',key=prefix+'setup'):
-            from .onboarding_ui import begin_chat_setup
-            begin_chat_setup(return_to='mbti')
+            from .api_settings_ui import open_api_settings
+            open_api_settings()
             st.rerun()
         button('上一步','connection_previous','consent')
         button('下一步','connection_next','analyze',not (api and readiness.ready and conversation.gateway_mode=='live' and flow.get('consent') and st.session_state.get('research_confirmed')))
@@ -155,7 +156,8 @@ def render_personality(conversation,allowed,readiness):
                 return (conversation.exploration.observation is observation and observation.generation==generation
                         and observation.consent_revision==revision and bool(st.session_state.get('api_consent'))
                         and bool(st.session_state.get('research_confirmed')) and bool(flow.get('consent')))
-            gateway=_AccountedGateway(lambda:make_gateway(live=True),reservation,current)
+            settings=get_session_settings()
+            gateway=_AccountedGateway(lambda:make_gateway(settings=settings),reservation,current)
             with st.spinner('正在核对日常偏好和原文依据…'):
                 profile=personality.analyze_personality(conversation.state.messages,gateway)
             state.record_profile(profile)

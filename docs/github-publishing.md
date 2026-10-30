@@ -33,6 +33,7 @@ data/eval/holdout.jsonl
 data/evaluation/conversation_observation_seed.jsonl
 data/knowledge/cards.jsonl
 data/sources.json
+docs/additional-tests-research-2026-10-30.md
 docs/conversation-observation-prompt-evaluation.md
 docs/data-flow.md
 docs/data-guide.md
@@ -52,12 +53,14 @@ docs/superpowers/plans/2026-10-29-chat-experience-plan.md
 docs/superpowers/plans/2026-10-29-conversational-exploration-plan.md
 docs/superpowers/plans/2026-10-29-personality-exploration-plan.md
 docs/superpowers/plans/2026-10-30-results-and-titles-plan.md
+docs/superpowers/plans/2026-10-30-session-api-settings-plan.md
 docs/superpowers/specs/2026-10-22-mental-support-agent-design.md
 docs/superpowers/specs/2026-10-29-chat-experience-design.md
 docs/superpowers/specs/2026-10-29-conversational-exploration-design.md
 docs/superpowers/specs/2026-10-29-personality-exploration-design.md
 docs/superpowers/specs/2026-10-30-guided-flows-design.md
 docs/superpowers/specs/2026-10-30-results-and-titles-design.md
+docs/superpowers/specs/2026-10-30-session-api-settings-design.md
 docs/v02-release.md
 docs/v03-verification.md
 docs/v04-progress.md
@@ -68,6 +71,7 @@ docs/v051-progress.md
 docs/v051-release.md
 docs/v052-progress.md
 docs/v052-release.md
+docs/v053-release.md
 policies/actions.json
 policies/fallbacks.json
 policies/help_resources.json
@@ -88,10 +92,12 @@ scripts/live_smoke.py
 scripts/seed_research_data.py
 start_demo.bat
 support_agent/__init__.py
+support_agent/api_settings_ui.py
 support_agent/assessment.py
 support_agent/attachment_questions.py
 support_agent/cli.py
 support_agent/config.py
+support_agent/connection_check.py
 support_agent/conversation_observation.py
 support_agent/conversations.py
 support_agent/exploration_catalog.py
@@ -117,6 +123,7 @@ support_agent/research_wellbeing_tests.py
 support_agent/response.py
 support_agent/schemas.py
 support_agent/session.py
+support_agent/session_connection.py
 support_agent/survey_presentation.py
 support_agent/survey_registry.py
 support_agent/telemetry.py
@@ -127,6 +134,7 @@ tests/__init__.py
 tests/conftest.py
 tests/helpers.py
 tests/test_api_only_ui.py
+tests/test_api_settings_ui.py
 tests/test_app.py
 tests/test_assessment.py
 tests/test_cli.py
@@ -138,6 +146,7 @@ tests/test_data.py
 tests/test_deadlines.py
 tests/test_dialogue_preferences.py
 tests/test_eval_split.py
+tests/test_explicit_connection.py
 tests/test_exploration_catalog.py
 tests/test_exploration_state.py
 tests/test_exploration_ui.py
@@ -146,6 +155,7 @@ tests/test_guided_entry.py
 tests/test_knowledge.py
 tests/test_live_smoke.py
 tests/test_model_client.py
+tests/test_observation_chat_handoff.py
 tests/test_observation_integration.py
 tests/test_observation_jobs.py
 tests/test_observation_scheduler.py
@@ -158,6 +168,7 @@ tests/test_policy.py
 tests/test_psychometrics.py
 tests/test_published_personality_tests.py
 tests/test_questionnaire_wizard.py
+tests/test_session_connection.py
 tests/test_session_privacy.py
 tests/test_survey_presentation.py
 tests/test_survey_registry.py

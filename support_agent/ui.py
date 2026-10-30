@@ -3,7 +3,9 @@ import html
 from pathlib import Path
 import streamlit as st
 from . import workflow
-from .config import ROOT,configuration_readiness
+from .config import ROOT
+from .session_connection import session_readiness as configuration_readiness,get_session_settings
+from .api_settings_ui import open_api_settings,render_api_settings
 from .conversations import Workspace,MAX_TITLE_LENGTH
 from .model_client import make_gateway
 from .schemas import EligibilityContext,ModelCallError,TurnResult
@@ -152,8 +154,9 @@ def render_sidebar():
                 if st.button('取消',key='cancel_remove'):
                     st.session_state.pop('confirm_delete',None)
                     st.rerun()
+        st.button('API 设置',key='open_api_settings',icon=':material/settings:',on_click=open_api_settings,width='stretch')
         st.toggle('显示研究记录',key='show_research',value=False,help='查看软件动作与原文依据；这些记录不是诊断报告。')
-        st.markdown('<div class="sidebar-footnote">研究预览 v0.5.2<br>仅限成年人虚构案例</div>',unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-footnote">研究预览 v0.5.3<br>仅限成年人虚构案例</div>',unsafe_allow_html=True)
 
 
 def render_welcome():
@@ -177,7 +180,7 @@ def render_composer(c,w,enabled,allow_send=True):
     if text and allow_send and enabled:
         gateway=None
         try:
-            gateway=make_gateway()
+            gateway=make_gateway(settings=get_session_settings())
             c.state.eligibility=EligibilityContext(adult_status='confirmed')
             existing_ids={m.id for m in c.state.messages}
             with st.spinner('正在认真读你说的话…'):
@@ -190,7 +193,7 @@ def render_composer(c,w,enabled,allow_send=True):
                     observation.message_relations[last_user.id]=selected
             st.rerun()
         except ModelCallError:
-            st.error('暂时无法连接 DeepSeek。请在“连接设置”检查本机配置，稍后重试。')
+            st.error('暂时无法连接 DeepSeek。请在“API 设置”检查你的密钥和模型名称，稍后重试。')
         finally:
             if gateway and hasattr(gateway,'close'): gateway.close()
 
@@ -212,6 +215,7 @@ def render():
     if view!='chat':
         if view=='home': render_home()
         elif view=='chat_setup': render_chat_setup(readiness)
+        elif view=='api_settings': render_api_settings()
         else: render_exploration(c,bool(st.session_state.get('research_confirmed')),readiness)
         render_observation_monitor(readiness)
         # Keep the frontend chat draft mounted while only the active flow is visible.

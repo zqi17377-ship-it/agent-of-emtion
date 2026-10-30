@@ -55,8 +55,10 @@ def test_cancelled_personality_connection_does_not_redirect_later_chat_setup():
     app.session_state['api_consent']=True
     app.run()
     app.button(key='personality_'+c.id+'_setup').click().run()
-    assert c.exploration.flows['chat_setup']['step']==0
-    app.button(key='chat_setup_exit').click().run()
+    assert app.session_state['workspace_view']=='api_settings'
+    app.button(key='api_settings_back').click().run()
+    assert app.session_state['workspace_view']=='exploration'
+    app.button(key='open_exploration').click().run()
     app.button(key='home_chat').click().run()
     app.button(key='chat_connection_settings').click().run()
     app.button(key='chat_setup_next').click().run()

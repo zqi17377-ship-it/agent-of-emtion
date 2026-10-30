@@ -4,6 +4,7 @@ from .model_client import make_gateway
 from .observation_scheduler import configure_observation,correct_observation,count_candidates,eligibility_reason
 from .observation_jobs import start_observation,poll_observation
 from .exploration_state import exploration_paused
+from .session_connection import get_session_settings
 
 DOMAIN_LABELS={'mbti':'MBTI风格偏好','big_five':'大五人格线索','attachment':'关系中的依恋倾向'}
 DIMENSION_LABELS={'EI':'社交恢复方式','SN':'信息关注','TF':'决策偏好','JP':'安排方式','extraversion':'外向性','agreeableness':'宜人性','conscientiousness':'尽责性','neuroticism':'负性情绪倾向','openness':'经验开放性','anxiety':'关系焦虑','avoidance':'亲近回避'}
@@ -67,7 +68,8 @@ def render_observation_monitor(readiness):
     accepted=poll_observation(state,c.state.messages,authorized=authorized,live=c.gateway_mode=='live',paused=paused)
     if accepted:
         st.rerun(scope='app')
-    start_observation(state,c.state.messages,c.id,lambda:make_gateway(live=True),manual=False,authorized=authorized,live=c.gateway_mode=='live',paused=paused)
+    settings=get_session_settings()
+    start_observation(state,c.state.messages,c.id,lambda:make_gateway(settings=settings),manual=False,authorized=authorized,live=c.gateway_mode=='live',paused=paused)
     if state.pending_job is not None:
         st.caption('正在后台整理对话线索，你可以继续聊天。')
     elif state.report is not None and st.session_state.get('workspace_view')!='exploration':
@@ -112,8 +114,12 @@ def render_observation_panel(c,allowed,readiness):
         st.write('先倾听，再整理可核对的性格和关系线索。探索性观察不是心理诊断，信息不足时暂不判断。')
         valid=research_checkbox(widget+'research')
     elif index==1:
-        st.write('此功能使用 DeepSeek 分析你允许的用户文字，会产生额外调用费用。密钥仅由本机配置读取。')
-        st.caption('连接配置已就绪' if readiness.ready else '连接配置尚未就绪，请先在本机完成配置。')
+        st.write('此功能使用 DeepSeek 分析你允许的用户文字，会产生额外调用费用。使用本次会话中保存的API配置。')
+        st.caption('连接配置已就绪' if readiness.ready else '连接配置尚未就绪，请先打开API设置。')
+        if st.button('打开API设置',key='observation_api_settings'):
+            from .api_settings_ui import open_api_settings
+            open_api_settings()
+            st.rerun()
         mixed=c.gateway_mode!='live' and bool(c.state.messages)
         if mixed: st.info('这段历史对话来自旧版连接，请先新开API对话。')
         valid=api_checkbox(widget+'api') and readiness.ready and not mixed
@@ -132,7 +138,10 @@ def render_observation_panel(c,allowed,readiness):
         draft['consent']=st.checkbox('同意分析本对话的用户文字，知悉会额外调用 DeepSeek',value=draft['consent'],key=widget+'consent')
         if st.button('确认启用对话探索',key='observation_confirm',type='primary',disabled=not draft['consent'] or not _authorized(c,readiness)):
             configure_observation(state,draft['mode'],tuple(draft['domains']))
-            draft['page']='done';st.rerun()
+            draft['page']='done'
+            st.session_state['workspace_view']='chat'
+            st.session_state['feature_flow_active']=False
+            st.rerun()
     if index>0 and st.button('上一步',key='observation_back'):
         draft['step']-=1;st.rerun()
     if index<4 and st.button('下一步',key='observation_next',type='primary',disabled=not valid):
@@ -187,7 +196,8 @@ def _render_report(c,readiness,prefix):
     st.caption(f'当前候选消息 {count} 条 · 非空白内容 {chars} 字 · 额外请求 {state.request_count} / 6')
     reason=eligibility_reason(state,c.state.messages,manual=True,live=c.gateway_mode=='live',authorized=_authorized(c,readiness),paused=exploration_paused(c.state.previous_decision))
     if st.button('整理当前对话线索',key='analyze_observations',type='primary',disabled=reason is not None):
-        start_observation(state,c.state.messages,c.id,lambda:make_gateway(live=True),manual=True,authorized=_authorized(c,readiness),live=c.gateway_mode=='live',paused=exploration_paused(c.state.previous_decision))
+        settings=get_session_settings()
+        start_observation(state,c.state.messages,c.id,lambda:make_gateway(settings=settings),manual=True,authorized=_authorized(c,readiness),live=c.gateway_mode=='live',paused=exploration_paused(c.state.previous_decision))
         st.rerun()
     if reason=='unchanged': st.caption('当前资料已尝试整理；补充新例子后可再次查看。')
     if reason=='budget': st.info('本对话的额外请求额度已用完。仍可查看已有观察。')

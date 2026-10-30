@@ -90,11 +90,18 @@ class DeepSeekGateway:
             self.client.close()
 
 
-def make_gateway(live: bool = True) -> ModelGateway:
+_SETTINGS_UNSET = object()
+
+
+def make_gateway(live: bool = True, *, settings=_SETTINGS_UNSET) -> ModelGateway:
     """Create the only supported product gateway; never fall back to a demo."""
     if not live:
         raise ModelCallError('offline_removed')
-    from .config import load_configuration
+    from .config import ConnectionSettings, load_configuration
 
-    settings = load_configuration()
-    return DeepSeekGateway(settings['LLM_API_KEY'], settings['LLM_MODEL'], settings['LLM_BASE_URL'])
+    if settings is _SETTINGS_UNSET:
+        local = load_configuration()
+        return DeepSeekGateway(local['LLM_API_KEY'], local['LLM_MODEL'], local['LLM_BASE_URL'])
+    if settings is None: raise ModelCallError('missing_key')
+    if not isinstance(settings,ConnectionSettings): raise ModelCallError('invalid_configuration')
+    return DeepSeekGateway(settings.api_key,settings.model,settings.base_url)
