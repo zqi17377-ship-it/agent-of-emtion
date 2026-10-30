@@ -69,20 +69,20 @@ def render_observation_entry(c,readiness):
     mode=MODE_LABELS.get(state.mode,'关闭')
     if state.mode=='off':
         with st.container(key='observation_entry',horizontal=True,vertical_alignment='center'):
-            st.caption('对话观察 · '+mode)
+            st.caption('性格探索未开启')
             st.button('设置对话探索',key='open_conversation_observation',icon=':material/psychology:',type='tertiary',on_click=open_observation)
         return
     from .observation_progress import observation_progress
     status=observation_progress(state,c.state.messages,authorized=_authorized(c,readiness),live=c.gateway_mode=='live',paused=exploration_paused(c.state.previous_decision))
-    with st.container(key='observation_progress_card',border=True):
-        st.markdown('**'+status.title+'**')
-        st.caption('对话观察 · '+mode+' · '+'、'.join(DOMAIN_LABELS[x] for x in state.domains))
-        if status.fraction is not None:
-            st.progress(status.fraction)
-        st.write(status.detail)
-        st.caption('进度仅表示聊天资料量，不代表性格分数或判断准确度。')
-        with st.container(horizontal=True,vertical_alignment='center'):
-            st.button('打开观察报告',key='open_conversation_report',icon=':material/description:',on_click=open_observation_report)
+    with st.container(key='observation_entry',horizontal=True,vertical_alignment='center'):
+        st.caption('性格探索 · '+status.title)
+        st.button('打开观察报告',key='open_conversation_report',type='tertiary',on_click=open_observation_report)
+        with st.popover('探索详情',icon=':material/tune:',type='tertiary',key='observation_details'):
+            st.caption(mode+' · '+'、'.join(DOMAIN_LABELS[x] for x in state.domains))
+            if status.fraction is not None:
+                st.progress(status.fraction)
+            st.write(status.detail)
+            st.caption('进度仅表示聊天资料量，不代表性格分数或判断准确度。')
             st.button('设置对话探索',key='open_conversation_observation',icon=':material/psychology:',type='tertiary',on_click=open_observation)
 
 
@@ -96,11 +96,11 @@ def render_observation_monitor(readiness):
     if accepted:
         st.rerun(scope='app')
     settings=get_session_settings()
-    start_observation(state,c.state.messages,c.id,lambda:make_gateway(settings=settings),manual=False,authorized=authorized,live=c.gateway_mode=='live',paused=paused)
-    if state.pending_job is not None:
+    started=start_observation(state,c.state.messages,c.id,lambda:make_gateway(settings=settings),manual=False,authorized=authorized,live=c.gateway_mode=='live',paused=paused)
+    if started:
+        st.rerun(scope='app')
+    if state.pending_job is not None and st.session_state.get('workspace_view')!='chat':
         st.caption('正在后台整理对话线索，你可以继续聊天。')
-    elif state.report is not None and st.session_state.get('workspace_view')!='exploration':
-        st.caption('对话观察已整理，可在“设置对话探索”中查看依据与修改。')
 
 
 def render_observation_panel(c,allowed,readiness):

@@ -1,5 +1,7 @@
 from concurrent.futures import Future
+from dataclasses import field, make_dataclass
 from types import SimpleNamespace
+import pytest
 from streamlit.testing.v1 import AppTest
 
 
@@ -169,3 +171,158 @@ def test_clearing_credentials_before_first_worker_send_never_creates_gateway(mon
         release.set()
     job.future.result(5)
     assert created==[] and state.request_count==0 and state.ledger.reserved==0
+
+
+def stale_connection_settings(api_key='synthetic-first',model='first-model',base_url='https://api.deepseek.com'):
+    """Recreate an old module identity using only synthetic fixture values."""
+    old_class=make_dataclass('ConnectionSettings',[
+        ('api_key',str,field(repr=False)),('model',str),('base_url',str),
+    ],namespace={'__module__':'support_agent.config','__qualname__':'ConnectionSettings'},frozen=True)
+    old_class.__module__='support_agent.config'
+    old_class.__qualname__='ConnectionSettings'
+    return old_class(api_key,model,base_url)
+
+
+def test_hot_reload_migrates_old_settings_without_invalidating_consent_or_records():
+    from support_agent import config
+    from support_agent.schemas import Message
+    app=launch();click(app,'save first')
+    c=app.session_state['workspace'].active
+    observation=c.exploration.observation
+    c.state.messages.append(Message(role='user',content='虚构案例：周末我喜欢安静地阅读。'))
+    messages=c.state.messages[:]
+    report=SimpleNamespace(fingerprint='synthetic-saved',observations=[])
+    pending=SimpleNamespace(future=Future())
+    observation.mode='auto';observation.domains=('mbti',)
+    observation.report=report;observation.pending_job=pending
+    observation.ledger.spent=2
+    generation,consent_revision=observation.generation,observation.consent_revision
+    setup={'page':'report','step':4,'consent':True,'mode':'auto'}
+    personality={'page':'questions','consent':True,'answers':{'ei_1':'I'}}
+    c.exploration.flows['observation_setup']=setup.copy()
+    c.exploration.flows['personality']=personality.copy()
+    c.exploration.confirmations={'EI':'I'}
+    app.session_state['api_consent']=True
+    app.session_state['chat_setup_api']=True
+    app.session_state['personality_'+c.id+'_api']=True
+    connection_revision=app.session_state['connection_revision']
+    old=stale_connection_settings()
+    assert type(old) is not config.ConnectionSettings
+    assert type(old).__module__==config.ConnectionSettings.__module__
+    assert type(old).__qualname__==config.ConnectionSettings.__qualname__
+    app.session_state['connection_settings']=old
+
+    app.run()
+
+    assert not app.exception and app.markdown[0].value=='ready'
+    normalized=app.session_state['connection_settings']
+    assert type(normalized) is config.ConnectionSettings
+    assert normalized.api_key=='synthetic-first' and normalized.model=='first-model'
+    assert normalized.base_url=='https://api.deepseek.com'
+    assert app.session_state['connection_revision']==connection_revision
+    assert app.session_state['api_consent'] is True
+    assert app.session_state['chat_setup_api'] is True
+    assert app.session_state['personality_'+c.id+'_api'] is True
+    assert observation.mode=='auto' and observation.domains==('mbti',)
+    assert observation.generation==generation and observation.consent_revision==consent_revision
+    assert observation.pending_job is pending and observation.report is report
+    assert observation.ledger.spent==2 and observation.ledger.reserved==0
+    assert c.exploration.flows['observation_setup']==setup
+    assert c.exploration.flows['personality']==personality
+    assert c.exploration.confirmations=={'EI':'I'} and c.state.messages==messages
+    click(app,'save first')
+    assert app.session_state['connection_revision']==connection_revision
+    assert app.session_state['api_consent'] is True and observation.mode=='auto'
+
+
+def test_stale_settings_are_revalidated_and_normalized_using_current_constructor():
+    from support_agent import config
+    app=launch()
+    app.session_state['connection_settings']=stale_connection_settings(
+        ' synthetic-fixture ',' synthetic-model ',' https://api.deepseek.com/v1/ ',
+    )
+
+    app.run()
+
+    assert not app.exception and app.markdown[0].value=='ready'
+    normalized=app.session_state['connection_settings']
+    assert type(normalized) is config.ConnectionSettings
+    assert normalized.api_key=='synthetic-fixture'
+    assert normalized.model=='synthetic-model'
+    assert normalized.base_url=='https://api.deepseek.com/v1'
+    assert 'connection_revision' not in app.session_state
+
+
+@pytest.mark.parametrize('field_name,invalid_value',[
+    ('api_key',''),('api_key','synthetic invalid'),('api_key',123),
+    ('model','invalid model'),('base_url','https://third-party.invalid/v1'),
+])
+def test_hot_reload_rejects_invalid_stale_values_without_borrowing_configuration(monkeypatch,field_name,invalid_value):
+    from support_agent import config
+    def forbidden_configuration_read():
+        raise AssertionError('must not read process or local configuration')
+    monkeypatch.setattr(config,'load_configuration',forbidden_configuration_read)
+    monkeypatch.setattr(config,'load_local_env',forbidden_configuration_read)
+    values={'api_key':'synthetic-fixture','model':'synthetic-model','base_url':'https://api.deepseek.com'}
+    values[field_name]=invalid_value
+    app=launch()
+    app.session_state['connection_settings']=stale_connection_settings(**values)
+
+    app.run()
+
+    assert not app.exception and app.markdown[0].value=='missing'
+    assert 'connection_revision' not in app.session_state
+
+
+@pytest.mark.parametrize('object_kind',[
+    'mapping','namespace','foreign_dataclass','same_module_other_name_dataclass','same_name_object',
+])
+def test_hot_reload_rejects_attribute_compatible_objects_from_other_types(object_kind):
+    values={'api_key':'synthetic-fixture','model':'synthetic-model','base_url':'https://api.deepseek.com'}
+    if object_kind=='mapping':
+        candidate=values
+    elif object_kind=='namespace':
+        candidate=SimpleNamespace(**values)
+    elif object_kind in ('foreign_dataclass','same_module_other_name_dataclass'):
+        foreign=make_dataclass('ConnectionSettings',[(name,str) for name in values],frozen=True)
+        foreign.__module__='third_party_fixture' if object_kind=='foreign_dataclass' else 'support_agent.config'
+        foreign.__qualname__='ConnectionSettings' if object_kind=='foreign_dataclass' else 'OtherSettings'
+        candidate=foreign(**values)
+    else:
+        unrelated=type('ConnectionSettings',(),{'__module__':'support_agent.config','__qualname__':'ConnectionSettings'})
+        candidate=unrelated()
+        for name,value in values.items():
+            setattr(candidate,name,value)
+    app=launch()
+    app.session_state['connection_settings']=candidate
+
+    app.run()
+
+    assert not app.exception and app.markdown[0].value=='missing'
+    assert 'connection_revision' not in app.session_state
+
+
+def test_config_class_replacement_uses_current_constructor_and_readiness(monkeypatch):
+    from support_agent import config
+    app=launch();click(app,'save first')
+    original_class=config.ConnectionSettings
+    new_namespace={
+        '__module__':original_class.__module__,
+        '__qualname__':original_class.__qualname__,
+        '__post_init__':original_class.__post_init__,
+    }
+    reloaded_class=make_dataclass('ConnectionSettings',[
+        ('api_key',str,field(repr=False)),('model',str,'deepseek-flash'),
+        ('base_url',str,'https://api.deepseek.com'),
+    ],namespace=new_namespace,frozen=True)
+    reloaded_class.__module__=original_class.__module__
+    reloaded_class.__qualname__=original_class.__qualname__
+    monkeypatch.setattr(config,'ConnectionSettings',reloaded_class)
+
+    app.run()
+
+    assert not app.exception and app.markdown[0].value=='ready'
+    assert type(app.session_state['connection_settings']) is reloaded_class
+    revision=app.session_state['connection_revision']
+    click(app,'save first')
+    assert app.session_state['connection_revision']==revision

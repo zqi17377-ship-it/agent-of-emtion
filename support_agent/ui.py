@@ -156,18 +156,16 @@ def render_sidebar():
                     st.rerun()
         st.button('API 设置',key='open_api_settings',icon=':material/settings:',on_click=open_api_settings,width='stretch')
         st.toggle('显示研究记录',key='show_research',value=False,help='查看软件动作与原文依据；这些记录不是诊断报告。')
-        st.markdown('<div class="sidebar-footnote">研究预览 v0.6.1<br>仅限成年人虚构案例</div>',unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-footnote">研究预览 v0.6.2<br>仅限成年人虚构案例</div>',unsafe_allow_html=True)
 
 
 def render_welcome():
-    st.markdown('''<section class="welcome"><div class="welcome-kicker"><span></span> 给想法一个慢下来的地方</div><h1>慢慢说，<br>我们一起梳理。</h1><p>不用一次把一切说明白。<br class="mobile-break">可以从今天最在意的一件小事开始。</p><div class="welcome-art" aria-hidden="true"><svg viewBox="0 0 240 240" fill="none"><circle cx="122" cy="120" r="94" fill="#e9eee3"/><circle cx="122" cy="120" r="70" stroke="#d5dfcb"/><path d="M118 192V113m0 39c-36 0-58-23-58-55 33 0 58 19 58 55Zm0-18c0-42 27-69 65-69 0 38-25 69-65 69Z" stroke="#78946f" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M81 120l37 32m0-18 44-47" stroke="#78946f" stroke-width="1.8" stroke-linecap="round"/><circle cx="189" cy="174" r="8" fill="#ddc9ab"/></svg></div></section>''',unsafe_allow_html=True)
+    st.markdown('<section class="chat-welcome"><h1>今天，想聊些什么？</h1><p>从一件小事开始，慢慢说就好。</p></section>',unsafe_allow_html=True)
     with st.container(key='starters'):
         columns=st.columns(3,gap='small')
-        for i,((key,title,description,text),column) in enumerate(zip(STARTERS,columns)):
-            with column,st.container(key='topic_'+key):
-                st.markdown(f'<span class="topic-number">0{i+1}</span>',unsafe_allow_html=True)
-                st.button(title+'  ↗',key='starter_'+key,on_click=fill_starter,args=(text,),width='stretch')
-                st.caption(description)
+        for (key,title,description,text),column in zip(STARTERS,columns):
+            with column:
+                st.button(title,key='starter_'+key,on_click=fill_starter,args=(text,),width='stretch',type='tertiary',help=description)
 
 
 def render_composer(c,w,enabled,allow_send=True):
@@ -207,12 +205,12 @@ def render():
     readiness=configuration_readiness()
     view=st.session_state.get('workspace_view','home')
     enabled=c.gateway_mode=='live' and bool(st.session_state.get('research_confirmed')) and bool(st.session_state.get('api_consent')) and readiness.ready
-    with st.container(key='brandbar'):
-        left,right=st.columns([4,1],vertical_alignment='center')
-        with left: st.markdown('<div class="main-brand"><span class="brand-mark">心</span><b>知心</b><span class="brand-description">倾听 · 梳理 · 陪伴</span></div>',unsafe_allow_html=True)
-        with right:
-            if view!='home': st.button('功能首页',icon=':material/home:',key='open_exploration',on_click=go_home,width='stretch')
     if view!='chat':
+        with st.container(key='brandbar'):
+            left,right=st.columns([4,1],vertical_alignment='center')
+            with left: st.markdown('<div class="main-brand"><span class="brand-mark">心</span><b>知心</b><span class="brand-description">倾听 · 梳理 · 陪伴</span></div>',unsafe_allow_html=True)
+            with right:
+                if view!='home': st.button('功能首页',icon=':material/home:',key='open_exploration',on_click=go_home,width='stretch')
         if view=='home': render_home()
         elif view=='chat_setup': render_chat_setup(readiness)
         elif view=='api_settings': render_api_settings()
@@ -223,10 +221,17 @@ def render():
         render_composer(c,w,enabled,allow_send=False)
         return
     with st.container(key='chat_toolbar'):
-        title,actions,export=st.columns([4,1.15,1.15],vertical_alignment='center')
+        title,home,actions=st.columns([4,1.2,1],vertical_alignment='center')
         with title: st.markdown('<div class="conversation-heading">'+html.escape(c.title if c.state.messages or getattr(c,'title_is_custom',False) else '给自己的一段时间')+'</div>',unsafe_allow_html=True)
-        with actions: st.button('新对话',key='new_top',icon=':material/add:',on_click=new_chat,width='stretch')
-        with export: st.download_button('导出',data=w.export_markdown(),file_name=f'zhixin-{c.id[:8]}.md',mime='text/markdown; charset=utf-8',key='export_chat',disabled=not bool(c.state.messages),on_click='ignore',icon=':material/download:',width='stretch',help='主动下载当前对话文本，不包含内部判断或密钥。')
+        with home: st.button('功能首页',icon=':material/home:',key='open_exploration',on_click=go_home,width='stretch',type='tertiary')
+        with actions:
+            with st.popover('更多',icon=':material/more_horiz:',width='stretch',type='tertiary',key='chat_more'):
+                st.button('新对话',key='new_top',icon=':material/add:',on_click=new_chat,width='stretch')
+                st.download_button('导出',data=w.export_markdown(),file_name=f'zhixin-{c.id[:8]}.md',mime='text/markdown; charset=utf-8',key='export_chat',disabled=not bool(c.state.messages),on_click='ignore',icon=':material/download:',width='stretch',help='主动下载当前对话文本，不包含内部判断或密钥。')
+                st.button('连接设置',key='chat_connection_settings',on_click=begin_chat_setup,type='tertiary',width='stretch')
+                if c.state.messages:
+                    st.button('清空本轮',key='clear_current',type='tertiary',icon=':material/delete_sweep:',on_click=clear_current,width='stretch')
+                st.caption('对话仅在本次会话保留，需要时请导出。')
     if st.session_state.get('notice'): st.info(st.session_state['notice'])
     if c.last_result is not None and not any(saved is c.last_result for saved in c.results.values()):
         st.warning(c.last_result.text)
@@ -242,22 +247,14 @@ def render():
                 if m.role=='assistant':
                     result=c.results.get(m.id)
                     with st.container(horizontal=True,key='feedback_'+m.id,gap='small',vertical_alignment='center'):
-                        if result: st.caption(turn_caption(result))
+                        if result and (result.status!='ok' or result.action=='urgent_support'): st.caption(turn_caption(result))
                         selected=c.feedback.get(m.id)
                         st.button('有帮助',icon=':material/thumb_up:',key='helpful_'+c.id+'_'+m.id,type='secondary' if selected=='helpful' else 'tertiary',on_click=feedback,args=(m.id,'helpful'))
                         st.button('需改进',icon=':material/thumb_down:',key='unhelpful_'+c.id+'_'+m.id,type='secondary' if selected=='not_helpful' else 'tertiary',on_click=feedback,args=(m.id,'not_helpful'))
-                    if c.feedback.get(m.id): st.caption('反馈已记在本次会话中，不会自动上传。')
-        with st.container(horizontal=True,key='conversation_footer'):
-            st.caption('当前对话仅在本页保留。')
-            st.button('清空本轮',key='clear_current',type='tertiary',icon=':material/delete_sweep:',on_click=clear_current)
     render_observation_entry(c,readiness)
     if not enabled:
         st.info('还差一点准备，就可以开始对话。')
         st.button('完成开始前准备',key='prepare_chat',on_click=begin_chat_setup,type='primary')
-    else:
-        with st.container(horizontal=True):
-            st.caption('DeepSeek API · 配置已就绪')
-            st.button('连接设置',key='chat_connection_settings',on_click=begin_chat_setup,type='tertiary')
     render_observation_monitor(readiness)
     render_composer(c,w,enabled)
     if st.session_state.get('show_research') and c.last_result:

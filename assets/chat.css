@@ -89,3 +89,29 @@ button:focus-visible,a:focus-visible{outline:2px solid #5e8065!important;outline
 .st-key-observation_progress_card{padding:17px 20px!important;border-radius:14px!important;background:#f1f5ec}
 .st-key-observation_progress_card [data-testid="stMarkdownContainer"] p{font-size:13px;line-height:1.65}
 @media(max-width:700px){.flow-heading{padding-top:10px}.flow-heading h2{font-size:24px!important}[class*="st-key-home_card_"]{padding:14px 16px!important}.welcome h1{font-size:29px!important}.flow-heading p{font-size:14px}}
+/* A quiet chat surface; questionnaire and setup pages retain their own styles. */
+.stApp:has(.st-key-chat_toolbar){background:#fff}
+.stApp:has(.st-key-chat_toolbar) .stAppHeader,.stApp:has(.st-key-chat_toolbar) [data-testid="stBottom"]{background:#fff!important}
+.stApp:has(.st-key-chat_toolbar) [data-testid="stSidebar"]{background:#fafbf9;border-right:1px solid #eef0eb}
+.stApp:has(.st-key-chat_toolbar) .sidebar-tagline{display:none}
+.stApp:has(.st-key-chat_toolbar) .sidebar-brand{margin-bottom:28px}
+.st-key-chat_toolbar{border:0;padding:0 0 20px;margin-bottom:10px}
+.st-key-chat_toolbar [data-testid="stHorizontalBlock"]{grid-template-columns:minmax(0,1fr) 116px 82px}
+.st-key-chat_toolbar .conversation-heading{font-size:17px;font-weight:600;letter-spacing:0;color:#35463b}
+.st-key-chat_toolbar button{font-size:12px;color:#69756b}
+.stApp:has(.st-key-chat_toolbar) [data-testid="stChatMessage"]{background:transparent;border:0;box-shadow:none;border-radius:0;padding:14px 4px}
+.stApp:has(.st-key-chat_toolbar) [class*="st-key-user_"] [data-testid="stChatMessage"]{background:#f3f5f1;border-radius:14px;padding:12px 16px;margin-left:12%;width:88%}
+.stApp:has(.st-key-chat_toolbar) [data-testid="stChatMessage"] p,.stApp:has(.st-key-chat_toolbar) .user-copy{font-size:15px;line-height:1.85;color:#344239}
+.stApp:has(.st-key-chat_toolbar) [class*="st-key-feedback_"]{padding-left:48px;margin-top:-6px}
+.stApp:has(.st-key-chat_toolbar) [class*="st-key-feedback_"] button{font-size:11px;color:#849087}
+.stApp:has(.st-key-chat_toolbar) [data-testid="stChatInput"]{border:1px solid #e2e7df!important;box-shadow:none!important;border-radius:16px!important}
+.stApp:has(.st-key-chat_toolbar) [data-testid="stChatInput"]>div{background:#fff!important}
+.stApp:has(.st-key-chat_toolbar) [data-testid="stChatInput"] textarea{background:#fff!important}
+.st-key-observation_entry{padding-top:18px;margin-top:8px;gap:8px!important}
+.st-key-observation_entry [data-testid="stCaptionContainer"]{font-size:12px;color:#6b796e}
+.st-key-observation_entry button{font-size:12px;white-space:nowrap;color:#6d7d70}
+.chat-welcome{padding:12vh 0 28px;text-align:center}
+.chat-welcome h1{font-size:27px!important;font-weight:500!important;color:#354b3d;letter-spacing:0}
+.chat-welcome p{font-size:14px;color:#7a887c;margin:8px 0 0}
+.stApp:has(.st-key-chat_toolbar) .st-key-starters{max-width:460px;margin:0 auto 32px}
+@media(max-width:700px){.st-key-chat_toolbar [data-testid="stHorizontalBlock"]{grid-template-columns:minmax(0,1fr) 88px 66px;gap:4px}.st-key-chat_toolbar .conversation-heading{font-size:15px}.st-key-chat_toolbar button{padding:4px}.st-key-observation_entry{flex-wrap:wrap!important}.chat-welcome{padding-top:8vh}.chat-welcome h1{font-size:24px!important}.stApp:has(.st-key-chat_toolbar) [data-testid="stChatMessage"] p,.stApp:has(.st-key-chat_toolbar) .user-copy{font-size:14px}}

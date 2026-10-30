@@ -81,6 +81,7 @@ docs/v053-release.md
 docs/v054-release.md
 docs/v06-release.md
 docs/v061-release.md
+docs/v062-release.md
 policies/actions.json
 policies/fallbacks.json
 policies/help_resources.json
@@ -180,6 +181,7 @@ tests/test_model_client.py
 tests/test_observation_chat_handoff.py
 tests/test_observation_integration.py
 tests/test_observation_jobs.py
+tests/test_observation_monitor.py
 tests/test_observation_progress.py
 tests/test_observation_scheduler.py
 tests/test_observation_ui.py

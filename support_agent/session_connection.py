@@ -3,20 +3,39 @@
 Web callers never fall back to the process or local file configuration. Workers
 must capture the returned immutable settings on the UI thread before dispatch.
 """
+from dataclasses import is_dataclass
 from uuid import uuid4
 import streamlit as st
 
-from .config import ConnectionSettings, readiness_for_settings
+from .config import ConnectionSettings
 
 SESSION_SETTINGS_KEY = 'connection_settings'
 
 
 def get_session_settings() -> ConnectionSettings | None:
+    # Streamlit can reload config while retaining an instance of its old class.
+    from .config import ConnectionSettings as current_type, ModelCallError
     settings = st.session_state.get(SESSION_SETTINGS_KEY)
-    return settings if isinstance(settings, ConnectionSettings) else None
+    if isinstance(settings, current_type):
+        return settings
+    old_type = type(settings)
+    if not is_dataclass(settings) or (
+        old_type.__module__, old_type.__qualname__
+    ) != (current_type.__module__, current_type.__qualname__):
+        return None
+    try:
+        normalized = current_type(
+            api_key=settings.api_key, model=settings.model, base_url=settings.base_url,
+        )
+    except (AttributeError, TypeError, ModelCallError):
+        return None
+    # Identity migration keeps the same connection and must not revoke consent.
+    st.session_state[SESSION_SETTINGS_KEY] = normalized
+    return normalized
 
 
 def session_readiness():
+    from .config import readiness_for_settings
     return readiness_for_settings(get_session_settings())
 
 
@@ -59,7 +78,8 @@ def _invalidate_connection():
 
 def save_session_settings(settings: ConnectionSettings) -> bool:
     """Save a validated snapshot; return whether the effective settings changed."""
-    if not isinstance(settings, ConnectionSettings):
+    from .config import ConnectionSettings as current_type
+    if not isinstance(settings, current_type):
         raise TypeError('invalid_settings')
     if get_session_settings() == settings:
         return False
