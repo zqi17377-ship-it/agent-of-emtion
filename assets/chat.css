@@ -76,5 +76,10 @@ button:focus-visible,a:focus-visible{outline:2px solid #5e8065!important;outline
 .flow-heading{padding:20px 0 6px}.flow-heading>span{font-size:12px;color:#74836c;letter-spacing:.06em}.flow-heading h2{font-size:29px!important;font-weight:500!important;padding:10px 0!important;color:#2d4737}.flow-heading p{font-size:15px;color:#64785e;margin:0 0 8px}
 [class*="st-key-home_card_"]{background:#fcfcf8;border-radius:16px!important;padding:18px 22px!important}[class*="st-key-home_card_"] button{font-size:18px!important;justify-content:flex-start!important;text-align:left!important;border:none!important;background:transparent!important;padding:0!important;color:#38583f!important}[class*="st-key-home_card_"] p{font-size:13px;line-height:1.8;color:#71816a}
 [class*="st-key-home_card_"] button>div{justify-content:flex-start!important}[class*="st-key-home_card_"] button p{font-size:19px!important;font-weight:600!important;color:#38583f!important;text-align:left!important}
-.stMainBlockContainer [data-testid="stRadio"] p{font-size:15px!important;line-height:1.55!important}.stMainBlockContainer [data-testid="stRadioOption"]{padding:4px 0!important}
+.stMainBlockContainer [data-testid="stRadio"] p{font-size:15px!important;line-height:1.55!important}
+.stMainBlockContainer [data-testid="stRadioOption"]{box-sizing:border-box;width:100%!important;min-height:44px;margin:4px 0!important;padding:10px 12px!important;border:1px solid #dce3d6;border-radius:10px;background:#fcfcf8;cursor:pointer;transition:background .15s,border-color .15s}
+.stMainBlockContainer [data-testid="stRadioOption"]:not(:has(input:disabled)):hover{border-color:#99ad91;background:#f2f5ed}
+.stMainBlockContainer [data-testid="stRadioOption"]:has(input:checked),.stMainBlockContainer [data-testid="stRadioOption"]:has(input:checked):hover{border-color:#496e55;background:#e8f0e3}
+.stMainBlockContainer [data-testid="stRadioOption"]:has(input:focus-visible){outline:2px solid #5e8065;outline-offset:2px}
+.stMainBlockContainer [data-testid="stRadioOption"]:has(input:disabled){opacity:.6;cursor:not-allowed}
 @media(max-width:700px){.flow-heading{padding-top:10px}.flow-heading h2{font-size:24px!important}[class*="st-key-home_card_"]{padding:14px 16px!important}.welcome h1{font-size:29px!important}.flow-heading p{font-size:14px}}
