@@ -31,11 +31,19 @@ def render_exploration(conversation,allowed,readiness):
     if not active:
         st.markdown('## 选择一个想了解的方向')
         st.write('选定后再决定题数或方式，每一步都会提示接下来做什么。')
+        st.caption(f'目前可作答 {sum(v.enabled for v in list_versions())} 个问卷版本。')
         descriptions={'mbti':'八题偏好问答、自我确认或查看对话中的性格线索。','attachment_exploration':'原创12题、每关系9题ECR-RS或36题ECR-R，分别了解焦虑和回避。','mini_ipip':'10、20、50或100题，按五个维度了解自己。','rses':'10题，了解通常的自我价值感受。','coping_confidence':'6题，回顾面对日常挑战的信心。','swls':'3或5题，回顾整体生活满意度。','scs26':'遇到挫折时怎样对待自己？12题看总体，26题另看六个面向。','maas15':'15题，回顾日常走神、自动行事和对当下活动的觉察。','dospert30':'30题，分别探索社交、娱乐、伦理、健康安全与财务情境中的行为意向。','conversation_observation':'按顺序设置主题和整理方式，再回到对话。'}
+        descriptions.update(erq30_en='30题英文原版，分别记录十种情绪调节策略的自报使用，不合成总分。',aaqii7='7题英文原版，了解痛苦体验与担忧对重要行动的影响；高分表示更多心理不灵活或经验性回避。')
         for tool,label in TOOL_LABELS.items():
             with st.container(border=True):
                 st.button(label,key='feature_'+tool,width='stretch',on_click=choose_feature,args=(tool,))
                 st.caption(descriptions[tool])
+        with st.expander('待接入的测试与来源'):
+            st.write('以下项目尚未内置题目，暂不能在这里作答，也不计入可作答数量。')
+            for version in list_versions():
+                if version.instrument_id in ('beq','ffmq') and not version.enabled:
+                    st.write(version.notes)
+                    st.link_button('查看作者资料',version.source_url,key='pending_source_'+version.instrument_id)
         return
     tool=st.session_state.get('exploration_tool','conversation_observation')
     if tool=='mbti': render_personality(conversation,allowed,readiness)

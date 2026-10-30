@@ -156,7 +156,7 @@ def render_sidebar():
                     st.rerun()
         st.button('API 设置',key='open_api_settings',icon=':material/settings:',on_click=open_api_settings,width='stretch')
         st.toggle('显示研究记录',key='show_research',value=False,help='查看软件动作与原文依据；这些记录不是诊断报告。')
-        st.markdown('<div class="sidebar-footnote">研究预览 v0.6<br>仅限成年人虚构案例</div>',unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-footnote">研究预览 v0.6.1<br>仅限成年人虚构案例</div>',unsafe_allow_html=True)
 
 
 def render_welcome():

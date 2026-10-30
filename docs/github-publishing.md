@@ -54,6 +54,7 @@ docs/superpowers/plans/2026-10-29-conversational-exploration-plan.md
 docs/superpowers/plans/2026-10-29-personality-exploration-plan.md
 docs/superpowers/plans/2026-10-30-expanded-questionnaires-plan.md
 docs/superpowers/plans/2026-10-30-exploration-guidance-plan.md
+docs/superpowers/plans/2026-10-30-remaining-scales-plan.md
 docs/superpowers/plans/2026-10-30-results-and-titles-plan.md
 docs/superpowers/plans/2026-10-30-session-api-settings-plan.md
 docs/superpowers/specs/2026-10-22-mental-support-agent-design.md
@@ -63,6 +64,7 @@ docs/superpowers/specs/2026-10-29-personality-exploration-design.md
 docs/superpowers/specs/2026-10-30-expanded-questionnaires-design.md
 docs/superpowers/specs/2026-10-30-exploration-guidance-design.md
 docs/superpowers/specs/2026-10-30-guided-flows-design.md
+docs/superpowers/specs/2026-10-30-remaining-scales-design.md
 docs/superpowers/specs/2026-10-30-results-and-titles-design.md
 docs/superpowers/specs/2026-10-30-session-api-settings-design.md
 docs/v02-release.md
@@ -78,6 +80,7 @@ docs/v052-release.md
 docs/v053-release.md
 docs/v054-release.md
 docs/v06-release.md
+docs/v061-release.md
 policies/actions.json
 policies/fallbacks.json
 policies/help_resources.json
@@ -107,6 +110,7 @@ support_agent/config.py
 support_agent/connection_check.py
 support_agent/conversation_observation.py
 support_agent/conversations.py
+support_agent/emotion_regulation_tests.py
 support_agent/exploration_catalog.py
 support_agent/exploration_state.py
 support_agent/exploration_ui.py
@@ -114,6 +118,7 @@ support_agent/flow_ui.py
 support_agent/guardrails.py
 support_agent/knowledge.py
 support_agent/long_personality_tests.py
+support_agent/mindfulness_flexibility_tests.py
 support_agent/model_client.py
 support_agent/observation_jobs.py
 support_agent/observation_progress.py
@@ -156,6 +161,7 @@ tests/test_conversations.py
 tests/test_data.py
 tests/test_deadlines.py
 tests/test_dialogue_preferences.py
+tests/test_erq30.py
 tests/test_eval_split.py
 tests/test_expanded_questionnaire_integration.py
 tests/test_expanded_survey_presentation.py
@@ -169,6 +175,7 @@ tests/test_guided_entry.py
 tests/test_ipip100.py
 tests/test_knowledge.py
 tests/test_live_smoke.py
+tests/test_mindfulness_flexibility_tests.py
 tests/test_model_client.py
 tests/test_observation_chat_handoff.py
 tests/test_observation_integration.py
@@ -185,6 +192,7 @@ tests/test_psychometrics.py
 tests/test_published_personality_tests.py
 tests/test_questionnaire_wizard.py
 tests/test_relationship_risk_definitions.py
+tests/test_remaining_scales_integration.py
 tests/test_self_care_definitions.py
 tests/test_session_connection.py
 tests/test_session_privacy.py

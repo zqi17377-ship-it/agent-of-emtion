@@ -1,8 +1,17 @@
 # 心理小测试扩充检索 · 2026-10-30
 
-本文保留首次检索时的来源与候选判断。当时仅研究资料，应用启用8个问卷版本；后续v0.6已接入IPIP100、SCS26/12、MAAS15、ECR-R36、每对象ECR-RS9与DOSPERT30，共15个启用版本。新题目均采用项目研究自译并登记来源、许可和计分；不声称取得已验证中文版。当前实施状态见[v0.6说明](v06-release.md)与survey_registry.py。下面未核材料的措辞记录的是首次检索状态，不将已实施版本再列为未接入。
+本文保留首次检索时的来源与候选判断，并补记后续实施状态。首次检索时应用启用8个问卷版本；v0.6接入IPIP100、SCS26/12、MAAS15、ECR-R36、每对象ECR-RS9与DOSPERT30，共15个启用版本，其新增中文题目为项目研究自译。v0.6.1经用户同意先采用英文原版，另接入ERQ-30和AAQ-II，共17个可作答版本；两者保留英文指导语、原题和锚点，中文仅用于界面与解释，不声称取得已验证中文版或本应用临床验证。当前实施状态见[v0.6.1说明](v061-release.md)、[v0.6说明](v06-release.md)及survey_registry.py。未覆盖的既有候选行保留首次检索待办，不据此推定已接入。
 
 v0.6另取得DOSPERT原始出版社附录及CC BY3.0许可，采用其英文30题行为意向版自译；未声称读取了Google普通话文件。ECR-R依据作者非商业研究/修改许可，RS依据作者页面的九题关系版说明、翻译许可与所链FAQ作当前研究范围的窄解释；不登记为独立CC许可。SCS26按六维均分等权平均，12题不输出分维画像，MAAS不二次反向。其他许可/题项不完整的候选仍停用。
+
+## v0.6.1核实与实施结果
+
+- **ERQ-30已接入英文原版**：后续取得[Preece与Gross作者上传的完整问卷和计分手册](https://www.researchgate.net/publication/398122614_The_Emotion_Regulation_Questionnaire-30_ERQ-30_Copy_of_Questionnaire_and_Scoring_Instructions)，不再仅依据Stanford目录的学术研究概括说明。手册允许原表用于研究/临床的纸笔或在线施测；翻译、改编或修改内容需另获许可。当前仅在本地非商业研究范围保留英文原表；30题、十种策略各3题加总3—21，无反向、无总分，不使用美国样本常模分类。
+- **AAQ-II已接入最终7题英文原版**：[作者页面所提供表格及计分](https://ruthbaer.com/academics/AAQ-II.pdf)、[ACBS所载作者Frank Bond许可](https://contextualscience.org/acceptance_action_questionnaire_aaq_aaqii)。研究及与来访者使用无需另获作者许可，营利用途需申请；本项目仅按本地非商业个人研究范围使用。7题全部正向加总7—49，高分表示更多心理不灵活或经验性回避。
+- **BEQ16继续待接入**：英文16题、三维、3/8/9反向及三个维度均分等权总体均已核实，但[作者资源页](https://spl.stanford.edu/resources)只明确学术研究许可，未确认覆盖当前个人研究或产品用途。英文可读、中文可下载均不能补足该用途许可。
+- **FFMQ39继续待接入**：已核到作者39题表与五维计分，仍未取得覆盖本项目的明确嵌入授权。未复制题项，也未制作近似原题代替。
+
+当前小测试目录共有12个主入口：10类问卷、MBTI风格与对话观察。BEQ/FFMQ仅显示在折叠的资料区，不内置题目、不可作答，也不计入17个可作答版本。本轮完整软件回归533 passed in50.44s，数据检查`valid=true`，未调用模型API。本机浏览器已核对目录与待接入链接、AAQ-II固定虚构作答28/49及实际下载内容，并检查ERQ-30英文首题、原锚点和未答禁用，详见[v0.6.1说明](v061-release.md)。许可与本应用测量验证分别记录，软件测试不证明临床有效性。
 
 ## 优先考虑的扩充
 
@@ -13,16 +22,17 @@ v0.6另取得DOSPERT原始出版社附录及CC BY3.0许可，采用其英文30�
 | 日常正念觉察 MAAS | 成人特质版15题、单维；探索走神、自动驾驶与对当前活动的觉察 | [作者工具页](https://kirkwarrenbrown.com/tools-for-researchers)、[特质版说明与计分](https://static1.squarespace.com/static/5b352f70b105987a3c71d3d1/t/5b50ec20562fa7ad87d4e93a/1532029984411/MAAS%2Btrait%2Bresearch-ready%2B%2B%2Bintro.pdf)。作者说明其属公共领域。该页未提供中文，应另核译本或明示研究自译。5题状态版与15题特质版测量目标不同，不作为可直接换算的题数版本。 |
 | 风险偏好 DOSPERT | 优先30题修订版；了解社交、娱乐、伦理、健康安全与财务等不同领域的风险选择 | [哥伦比亚大学作者材料页](https://business.columbia.edu/cds/research/research-tools/dospert-scale)、[当前官方站](https://sites.google.com/decisionsciences.columbia.edu/dospert/home)。页面允许署名使用并列普通话文件及计分链接；具体中文题项、锚点与商业嵌入条款仍需实施前逐项核实。本次Google文档只返回标题，未声称完成逐题计分核对。官方将40题列为不再推荐的旧版，不因更长就优先40题。 |
 
-## 主题更丰富、但仍有待核项的候选
+## 主题扩充的来源与状态
 
-| 工具 | 题数与有趣之处 | 实施前明确待办 |
+| 工具 | 题数与有趣之处 | 当前状态及待办 |
 | --- | --- | --- |
 | 好奇心 5DCR | 24题、6个面向：探索兴趣、求知驱动、不确定压力耐受、一般社交好奇、隐蔽社交好奇、寻求刺激。前版5DC为25题/5维，两者不可按总题数混用 | [量表研究者提供的GESIS记录](https://zis.gesis.org/s//skala/Gr%C3%BCning-Lechner-Five-dimensional-curiosity-scale-%285DCR%29)、[作者实验室](https://toddkashdan.com/lab.html)。GESIS标为Standardlizenz，并提示其他用途联系作者；作者站搜索结果说明科学/实践使用免费、商业联系作者。本轮未核到可直接复用的中文版本或完整商用许可。不能采用第三方目录所写CC BY4.0而覆盖一手页面实际条款。 |
 | 亲密关系 ECR-R | 36题，焦虑/回避各18题；比当前原创12题更深入，但属于另一工具 | [作者许可FAQ](https://labs.psychology.illinois.edu/~rcfraley/measures/ecrr.htm)、[原始施测与计分键](https://labs.psychology.illinois.edu/~rcfraley/measures/ecrritems.htm)。非商业研究无需另许可，商业需许可；中文版待核。作者主页面IRT表另有排序，不能将其题号套入36题施测键。 |
 | 跨关系 ECR-RS | 每关系9题，可分别观察伴侣、朋友、父母等对象；四关系是36次回答 | [作者页面](https://labs.psychology.illinois.edu/~rcfraley/measures/relstructures.htm)。每关系单独计分，不是ECR-R36。原2011锚点1—7与作者后续使用1—5需冻结实际版本；具体中文及商业展示权利待核，不将多个对象默认合成固定类型。 |
 | 幸福感 PERMA-Profiler | 23题；15核心题覆盖积极情绪、投入、关系、意义、成就，另有健康、负性情绪、孤独及幸福单项 | [作者许可与中文入口](https://www.peggykern.org/questionnaires.html)、[完整施测说明](https://www.peggykern.org/uploads/5/6/6/7/56678211/the_perma-profiler_101416.pdf)、[中英对照](https://www.peggykern.org/uploads/5/6/6/7/56678211/chinese_perma_final_120213_with_english.pdf)。研究/非商使用免费署名，商业另联系。所链接PDF还要求使用前阅读并注册，本次未代用户注册。不同题目0—10锚点不同，现有统一options模型不能未经改造直接套用；按P/E/R/M/A标签对应中文与英文版本。 |
-| 情绪调节 ERQ-30 | 30题、10策略，包含重评、接纳、反刍、分心、问题解决等 | [Stanford官方资源](https://spl.stanford.edu/resources)、[2026原论文](https://pubmed.ncbi.nlm.nih.gov/41260359/)。扩展了经典ERQ10的测量内容，不能说成相同两维的简单加长版。官方目录未列中文；完整计分文件本轮只读到Drive标题，未核实完整键。页面只明确学术研究许可，不推定个人/商业产品均已获授权。 |
-| 情绪表达 BEQ | 16题、3维，积极表达、消极表达及情绪冲动强度；对应“我会把情绪表现出来吗” | [官方资源与许可](https://spl.stanford.edu/resources)、[英文题本与键](https://spl.stanford.edu/sites/g/files/sbiybj19321/files/media/file/english.pdf)、[简体中文](https://spl.stanford.edu/sites/g/files/sbiybj19321/files/media/file/chinese_simplified.pdf)。研究用途条款同上，具体中文适用证据与商业用途待核。 |
+| 情绪调节 ERQ-30 | 30题、10策略，包含重评、接纳、反刍、分心、问题解决等 | [Stanford官方资源](https://spl.stanford.edu/resources)、[2026原论文](https://pubmed.ncbi.nlm.nih.gov/41260359/)。v0.6.1已依据作者完整手册接入英文原版，详见上方核实记录；十策略各3—21分，不合成总分。它扩展了经典ERQ10的构念内容，不是相同两维的简单加长版；未提供项目中文题项译文。 |
+| 心理不灵活 / 经验性回避 AAQ-II | 最终7题，了解痛苦感受、记忆和担忧对重要行动的影响 | v0.6.1已依据[最终表格](https://ruthbaer.com/academics/AAQ-II.pdf)与[作者许可说明](https://contextualscience.org/acceptance_action_questionnaire_aaq_aaqii)接入英文原版，7—49分，高分方向为更多心理不灵活/经验性回避；不混用旧10题稿。 |
+| 情绪表达 BEQ | 16题、3维，积极表达、消极表达及情绪冲动强度；对应“我会把情绪表现出来吗” | [官方资源与许可](https://spl.stanford.edu/resources)、[英文题本与键](https://spl.stanford.edu/sites/g/files/sbiybj19321/files/media/file/english.pdf)、[简体中文](https://spl.stanford.edu/sites/g/files/sbiybj19321/files/media/file/chinese_simplified.pdf)。题本与键已核，但资源页仅明确学术研究许可，未确认当前个人研究或产品用途；继续不内置题项。 |
 | 五因素正念 FFMQ | 39题、5维，观察、描述、觉察行动、不评判、不反应；另有15题等独立短版研究 | [作者页](https://ruthbaer.com/academics/)、[原39题与计分](https://ruthbaer.com/academics/FFMQ.pdf)、[机构版本文献](https://contextualscience.org/five_facet_mindfulness_questionnaire_ffmq)。有原始计分，但本轮未见明确嵌入产品授权及可直接复用的中文材料，暂不启用。 |
 | 孤独与连接感 Revised UCLA | 20题1980版，了解主观社会连接感；另有ULS-8独立短版 | [作者大学页面与许可](https://peplau.psych.ucla.edu/loneliness/)、[1980原论文](https://peplau.psych.ucla.edu/wp-content/uploads/sites/141/2017/07/Russel-Peplau-Cutrona-80.pdf)。非营利研究免许可；商用/具体中文另核。不能混用1980 Revised陈述版与1996 Version3问句版反向键；不把得分解释为人际能力或疾病。 |
 
@@ -42,7 +52,7 @@ v0.6另取得DOSPERT原始出版社附录及CC BY3.0许可，采用其英文30�
 
 1. 先为已有大五补100题路径；新增SCS26与MAAS15，分别采用六维图加明确总分、单轴量程图。SCS12如加入，以总分为主。
 2. 完成材料与用途核对后再安排DOSPERT30、5DCR24、PERMA23、ECR-R36，分别提供跨领域风险图、六面向好奇心图、PERMA五核心图和依恋二维图。
-3. ERQ30、FFMQ39、IPIP-NEO120等作高级候选，不为了题量自行截取或重复题目。每个版本登记独立题序、锚点、正反向键、语言、出处、许可和适用人群。
+3. ERQ30已在v0.6.1按完整手册接入英文原版；FFMQ39、IPIP-NEO120等继续按各自材料与许可状态处理，不为了题量自行截取或重复题目。每个版本登记独立题序、锚点、正反向键、语言、出处、许可和适用人群。
 4. SCS26总分需先将负向维度反向，分别算六个分量表均分，再对六个均分平均；不能因分量表题数不同而直接平均26题。MAAS15按原频率锚点直接平均，不再全部反向。FFMQ各维题数不同，雷达若显示题均分应明示转换方式。
 5. 保留逐题显示、边框选项、草稿、核对后提交及结果导出。新增工具解读对应其实际构念，不把幸福感、孤独或正念强行转换成MBTI类型。
 

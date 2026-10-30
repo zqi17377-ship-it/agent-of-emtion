@@ -31,6 +31,10 @@ class SurveyPresentation:
 # Each tuple is lower-side wording, upper-side wording, a reflection prompt.
 # Opposite emotional axes intentionally remain separate.
 _MEANINGS = {
+    'psychological_inflexibility': (
+        '本次较少报告痛苦感受、记忆或担忧妨碍自己重视的行动。',
+        '本次较多报告痛苦感受、记忆或担忧妨碍自己重视的行动；高分表示更多心理不灵活或经验性回避，而不是更灵活。',
+        '反思最近一次很在意却难以行动的事情：哪些感受或担忧妨碍了行动，当时的情境是什么？'),
     'extraversion': (
         '本次较少认同主动交谈、活跃社交场面的描述，可能更习惯安静或较少刺激的互动。',
         '本次较多认同主动交谈、参与互动和表达热情的描述。',
@@ -132,6 +136,24 @@ _MEANINGS = {
         '本次较多表示会参与所列社交风险行为；这不能单独说明社交能力。',
         '反思所列社交情境：关系、场合和可能后果怎样影响了你的回答？'),
 }
+
+# Original English instrument content is not translated. These are local prompts
+# for reflection on the separate raw strategy scores, not clinical categories.
+for _key,_name,_prompt in (
+    ('behavioral_activation','Behavioral activation','Consider a recent week: how did pleasant or meaningful activities relate to your emotions?'),
+    ('problem_solving','Problem solving','Consider a recent problem: how did practical action relate to what you felt?'),
+    ('situational_avoidance','Situational avoidance','Consider a recent stressful situation: what happened when you stayed or moved away?'),
+    ('social_withdrawal','Social withdrawal','Consider a recent time you wanted space: how did distance from others affect you?'),
+    ('distraction','Distraction','Consider a recent distraction: what changed during it, and what happened afterwards?'),
+    ('rumination','Rumination','Consider a recent repeated train of thought: did it lead to new information or repeat the same concerns?'),
+    ('acceptance','Acceptance','Consider a recent situation you could not change: how did you relate to that experience?'),
+    ('cognitive_reappraisal','Cognitive reappraisal','Consider a recent change of perspective: what changed in your understanding of the situation?'),
+    ('expressive_suppression','Expressive suppression','Consider a recent feeling you kept to yourself: what was the context and what followed?'),
+    ('social_sharing','Social sharing','Consider a recent conversation about feelings: what did you share and how was it received?'),
+):
+    _MEANINGS['erq30_'+_key]=(
+        'These responses report less use of '+_name+'.',
+        'These responses report more use of '+_name+'.',_prompt)
 
 
 def _position(dimension):

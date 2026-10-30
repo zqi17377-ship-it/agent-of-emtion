@@ -4,8 +4,10 @@ from .wellbeing_tests import TIPI
 from .research_wellbeing_tests import SWLS,COPING_CONFIDENCE
 from .self_care_tests import SCS26,MAAS15
 from .relationship_risk_tests import DOSPERT30
+from .emotion_regulation_tests import ERQ30_EN
+from .mindfulness_flexibility_tests import AAQII7
 
-SURVEYS=(ATTACHMENT_EXPLORATION,MINI_IPIP,TIPI,RSES,COPING_CONFIDENCE,SWLS,SCS26,MAAS15,DOSPERT30)
+SURVEYS=(ATTACHMENT_EXPLORATION,MINI_IPIP,TIPI,RSES,COPING_CONFIDENCE,SWLS,SCS26,MAAS15,DOSPERT30,ERQ30_EN,AAQII7)
 SURVEY_BY_ID={q.id:q for q in SURVEYS}
 TOOL_LABELS={'mbti':'对话性格 · MBTI 风格',**{q.id:q.title for q in SURVEYS}}
 TOOL_LABELS.pop('tipi',None)

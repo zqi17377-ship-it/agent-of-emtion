@@ -9,6 +9,8 @@ from .long_personality_tests import IPIP50, SWLS3
 from .additional_personality_tests import IPIP100
 from .self_care_tests import SCS26,SCS12,MAAS15
 from .relationship_risk_tests import ECR_R36,ECR_RS9,DOSPERT30
+from .emotion_regulation_tests import ERQ30_EN
+from .mindfulness_flexibility_tests import AAQII7
 
 
 @dataclass(frozen=True)
@@ -28,20 +30,21 @@ class SurveyVersion:
     validation_population: str
 
 
-def _registered(q, construct, instrument, version):
+def _registered(q, construct, instrument, version, language_version='zh-project-v1'):
     return SurveyVersion(
-        f'{instrument}:{version}:zh-project-v1:key-v1', construct, instrument, version,
-        'zh-project-v1', 'key-v1', q, True, q.translation_note, len(q.items),
+        f'{instrument}:{version}:{language_version}:key-v1', construct, instrument, version,
+        language_version, 'key-v1', q, True, q.translation_note, len(q.items),
         q.source_url, q.license_notice,
-        '本项目中文译文/原创题目未经中文样本信效度验证；不把原文研究人群的结果外推为本项目验证。',
+        ('英文原版的原研究证据不等于本应用已完成独立验证；不外推原研究常模。' if language_version=='en-original'
+         else '本项目中文译文/原创题目未经中文样本信效度验证；不把原文研究人群的结果外推为本项目验证。'),
     )
 
 
-def _candidate(construct, instrument, version, count, url):
+def _candidate(construct, instrument, version, count, url, notes=None):
     return SurveyVersion(
         f'{instrument}:{version}:zh-pending:key-pending', construct, instrument, version,
         'zh-pending', 'key-pending', None, False,
-        '候选，未接入题项；须逐项核实具体中文版、题序、计分、量程与适用许可后另行启用。',
+        notes or '候选，未接入题项；须逐项核实具体中文版、题序、计分、量程与适用许可后另行启用。',
         count, url, '本项目尚未完成该具体版本及中文材料的许可核实。', '未核实，不宣称项目验证。',
     )
 
@@ -62,6 +65,12 @@ SURVEY_VERSIONS = (
     _registered(ECR_R36,'attachment','ecr_r','36'),
     _registered(ECR_RS9,'attachment','ecr_rs','9-2011-7point'),
     _registered(DOSPERT30,'risk_preference','dospert','30-rt-2006'),
+    _registered(ERQ30_EN,'emotion_regulation','erq30','30','en-original'),
+    _registered(AAQII7,'psychological_inflexibility','aaq_ii','7','en-original'),
+    _candidate('emotional_expression','beq','16',16,'https://spl.stanford.edu/resources',
+               'BEQ 16题：作者资源页目前只明确授权学术研究；尚未确认覆盖本项目的个人研究及产品用途，暂不内置题项。'),
+    _candidate('mindfulness_facets','ffmq','39',39,'https://ruthbaer.com/academics/',
+               'FFMQ 39题：已找到作者题本和计分，但尚未核到明确的嵌入使用许可，暂不内置题项。'),
     *(_candidate('big_five','bfi2',str(n),n,'https://www.ocf.berkeley.edu/~johnlab/measures') for n in (60,30,15)),
     _candidate('attachment','ecr_s','12',12,'https://pubmed.ncbi.nlm.nih.gov/17437384/'),
 )
