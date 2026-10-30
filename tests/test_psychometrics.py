@@ -30,6 +30,7 @@ def test_scores_each_dimension_and_retains_raw_answers_for_export():
     assert asdict(result) == {
         'test_id': 'example',
         'version_id': None,
+        'composites': {},
         'dimensions': {
             'a': {
                 'key': 'a', 'label': '维度甲', 'total': 8, 'mean': 4.0,

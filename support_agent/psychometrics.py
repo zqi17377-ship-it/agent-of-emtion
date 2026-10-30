@@ -1,14 +1,14 @@
 """Pure local scoring of explicitly defined questionnaire dimensions.
 
-Results preserve raw answers and expose dimension sums and means. Unrelated
-dimensions are never combined into a global score or converted to percentages.
+Results preserve raw answers and expose dimension sums and means. Only explicitly
+declared composites average dimension means; no implicit global score is added.
 Use ``dataclasses.asdict(result)`` when an exportable dictionary is needed.
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass,field
 
 
 @dataclass(frozen=True)
@@ -17,6 +17,13 @@ class TestItem:
     text: str
     dimension: str
     reverse: bool = False
+
+
+@dataclass(frozen=True)
+class CompositeSpec:
+    key: str
+    label: str
+    dimensions: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -34,6 +41,9 @@ class Questionnaire:
     translation_note: str
     display: str = 'mean'
     interpretation: str = ''
+    composites: tuple[CompositeSpec, ...] = ()
+    show_dimensions: bool = True
+    context_options: tuple[str, ...] = ()
 
     @property
     def max_score(self) -> int:
@@ -54,11 +64,21 @@ class DimensionResult:
 
 
 @dataclass(frozen=True)
+class CompositeResult:
+    key: str
+    label: str
+    mean: float
+    min_value: int
+    max_value: int
+
+
+@dataclass(frozen=True)
 class QuestionnaireResult:
     test_id: str
     dimensions: dict[str, DimensionResult]
     answers: dict[str, int]
     version_id: str | None = None
+    composites: dict[str, CompositeResult] = field(default_factory=dict)
 
 
 def _validate_definition(definition: Questionnaire) -> None:
@@ -76,6 +96,14 @@ def _validate_definition(definition: Questionnaire) -> None:
     dimensions = {item.dimension for item in definition.items}
     if dimensions != set(definition.dimension_labels):
         raise ValueError('Dimension labels must match the item dimensions exactly.')
+    composite_keys=[spec.key for spec in definition.composites]
+    if len(set(composite_keys))!=len(composite_keys) or any(not key or key in dimensions for key in composite_keys):
+        raise ValueError('Composite keys must be unique and distinct from dimensions.')
+    for spec in definition.composites:
+        if not spec.dimensions or len(set(spec.dimensions))!=len(spec.dimensions) or not set(spec.dimensions)<=dimensions:
+            raise ValueError('A composite must reference distinct existing dimensions.')
+    if not definition.show_dimensions and not definition.composites:
+        raise ValueError('Hidden dimensions require an explicit composite result.')
 
 
 def score_questionnaire(
@@ -114,4 +142,9 @@ def score_questionnaire(
     return QuestionnaireResult(
         test_id=definition.id, dimensions=dimensions,
         answers={item.id: answers[item.id] for item in definition.items},
+        composites={spec.key:CompositeResult(
+            key=spec.key,label=spec.label,
+            mean=sum(dimensions[key].mean for key in spec.dimensions)/len(spec.dimensions),
+            min_value=minimum,max_value=maximum,
+        ) for spec in definition.composites},
     )

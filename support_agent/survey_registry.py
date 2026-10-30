@@ -6,6 +6,9 @@ from .published_personality_tests import MINI_IPIP, RSES
 from .research_wellbeing_tests import SWLS, COPING_CONFIDENCE
 from .attachment_questions import ATTACHMENT_EXPLORATION
 from .long_personality_tests import IPIP50, SWLS3
+from .additional_personality_tests import IPIP100
+from .self_care_tests import SCS26,SCS12,MAAS15
+from .relationship_risk_tests import ECR_R36,ECR_RS9,DOSPERT30
 
 
 @dataclass(frozen=True)
@@ -47,15 +50,19 @@ SURVEY_VERSIONS = (
     _registered(TIPI,'big_five','tipi','10'),
     _registered(MINI_IPIP,'big_five','mini_ipip','20'),
     _registered(IPIP50,'big_five','ipip50','factor-markers-50'),
+    _registered(IPIP100,'big_five','ipip100','factor-markers-100'),
     _registered(RSES,'self_esteem','rses','10'),
     _registered(SWLS,'life_satisfaction','swls','5'),
     _registered(SWLS3,'life_satisfaction','swls','3'),
     _registered(ATTACHMENT_EXPLORATION,'attachment','attachment_original','12'),
     _registered(COPING_CONFIDENCE,'coping','coping_original','6'),
-    _candidate('big_five','ipip100','factor-markers-100',100,'https://ipip.ori.org/newBigFive5broadKey.htm'),
+    _registered(SCS26,'self_compassion','scs','26'),
+    _registered(SCS12,'self_compassion','scs_sf','12'),
+    _registered(MAAS15,'mindful_attention','maas','trait-15'),
+    _registered(ECR_R36,'attachment','ecr_r','36'),
+    _registered(ECR_RS9,'attachment','ecr_rs','9-2011-7point'),
+    _registered(DOSPERT30,'risk_preference','dospert','30-rt-2006'),
     *(_candidate('big_five','bfi2',str(n),n,'https://www.ocf.berkeley.edu/~johnlab/measures') for n in (60,30,15)),
-    _candidate('attachment','ecr_r','36',36,'https://labs.psychology.illinois.edu/~rcfraley/measures/ecrr.htm'),
-    _candidate('attachment','ecr_rs','9',9,'https://labs.psychology.illinois.edu/~rcfraley/measures/relstructures.htm'),
     _candidate('attachment','ecr_s','12',12,'https://pubmed.ncbi.nlm.nih.gov/17437384/'),
 )
 _BY_ID = {v.id:v for v in SURVEY_VERSIONS}

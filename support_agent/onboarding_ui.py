@@ -15,7 +15,8 @@ def choose_feature(tool):
     st.session_state['workspace_view']='exploration'
     st.session_state['exploration_tool']=tool
     st.session_state['feature_flow_active']=True
-    c.exploration.flows['feature_navigation']={'tool':tool,'stage':'version' if tool in ('mini_ipip','swls') else 'run'}
+    # The selected feature derives its version step from the registered tools.
+    c.exploration.flows.pop('feature_navigation',None)
 
 
 def begin_chat_setup(return_to='chat'):

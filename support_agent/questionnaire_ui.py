@@ -11,10 +11,14 @@ def show_result(definition,result,context):
     presentation=build_survey_presentation(definition,result)
     st.markdown('#### 本次记录')
     if context: st.caption('想到的关系：'+context)
+    for composite in result.composites.values():
+        st.metric(composite.label,f'{composite.mean:.2f} / {composite.max_value}')
     st.image(presentation.svg,width='stretch')
     st.caption(presentation.chart_label)
     with st.expander('查看原始分数'):
-        for dimension in result.dimensions.values():
+        for composite in result.composites.values():
+            st.markdown(f'**{composite.label}**　{composite.mean:.2f} / {composite.max_value}')
+        for dimension in (result.dimensions.values() if definition.show_dimensions else ()):
             value=f'{dimension.total} / {dimension.max_total}' if definition.display=='sum' else f'{dimension.mean:.2f} / {dimension.max_value}'
             st.markdown(f'**{dimension.label}**　{value}')
     st.markdown(presentation.markdown)
@@ -33,11 +37,15 @@ def render_questionnaire(conversation,definition,allowed,version_id=None):
     prefix=f'explore_{conversation.id}_{identity}'
     flow=state.flows.setdefault('survey:'+prefix,{'page':'intro','context':'','drafts':{},'index':0})
     context=flow['context']
+    def record_for(target):
+        return f'{identity}:relationship:{target}' if definition.context_options and target else identity
+    record_id=record_for(context)
     draft_key=f'{prefix}:{context}'
-    prior=state.survey_answers.get(identity,{}) if state.survey_contexts.get(identity,'')==context else {}
+    prior=state.survey_answers.get(record_id,{}) if state.survey_contexts.get(record_id,'')==context else {}
     answers=flow['drafts'].setdefault(draft_key,dict(prior))
     enabled=bool(st.session_state.get('research_confirmed',allowed))
-    attachment=definition.id=='attachment_exploration'
+    context_options=definition.context_options or (('亲密伴侣','亲近朋友','父母或家人','其他重要关系') if definition.id=='attachment_exploration' else ())
+    attachment=bool(context_options)
     page=flow['page']
     steps=['使用说明']+(['选择关系'] if attachment else [])+['逐题填写','核对答案','查看结果']
     step_index={'intro':0,'context':1,'questions':1+attachment,'review':2+attachment,'result':3+attachment}[page]
@@ -59,11 +67,11 @@ def render_questionnaire(conversation,definition,allowed,version_id=None):
         confirmed=research_checkbox('survey_research')
         if st.button('开始填写',key='survey_start',disabled=not confirmed,type='primary'):
             go('context' if attachment else 'questions')
-        if identity in state.survey_results and st.button('查看上次结果',key='survey_show_saved'):
+        if record_id in state.survey_results and st.button('查看上次结果',key='survey_show_saved'):
             go('result')
         return
     if page=='context':
-        options=['亲密伴侣','亲近朋友','父母或家人','其他重要关系']
+        options=list(context_options)
         selected=st.radio('这次想到哪段关系？',options,index=options.index(context) if context in options else None,key=prefix+'_attachment_context')
         if selected: flow['context']=selected
         st.caption('同一次作答始终围绕这一段关系，不把不同对象混在一起。')
@@ -71,10 +79,12 @@ def render_questionnaire(conversation,definition,allowed,version_id=None):
         if st.button('下一步',key='survey_next',disabled=not selected or not enabled):
             flow['index']=0
             go('questions')
+        if selected and record_for(selected) in state.survey_results and state.survey_contexts.get(record_for(selected))==selected and st.button('查看这段关系的上次结果',key='survey_show_context_saved'):
+            go('result')
         return
     if page=='result':
-        if identity in state.survey_results:
-            show_result(definition,state.survey_results[identity],state.survey_contexts.get(identity,''))
+        if record_id in state.survey_results:
+            show_result(definition,state.survey_results[record_id],state.survey_contexts.get(record_id,''))
         if st.button('修改答案',key='survey_edit'):
             flow['index']=0
             go('context' if attachment else 'questions')
@@ -112,7 +122,7 @@ def render_questionnaire(conversation,definition,allowed,version_id=None):
         go('questions')
     complete=all(answers.get(item.id) in range(definition.min_score,definition.max_score+1) for item in definition.items)
     if st.button('确认提交并保存结果',key='calculate_survey',disabled=not enabled or not complete,type='primary'):
-        state.survey_answers[identity]=dict(answers)
-        state.survey_results[identity]=replace(score_questionnaire(definition,answers),version_id=version_id)
-        state.survey_contexts[identity]=context
+        state.survey_answers[record_id]=dict(answers)
+        state.survey_results[record_id]=replace(score_questionnaire(definition,answers),version_id=version_id)
+        state.survey_contexts[record_id]=context
         go('result')

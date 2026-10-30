@@ -13,9 +13,9 @@ def registry():
 def test_registry_has_distinct_versions_and_legacy_ids():
     r=registry()
     enabled=[v for v in r.list_versions() if v.enabled]
-    assert len(enabled)==8
+    assert len(enabled)==15
     assert len({v.id for v in r.SURVEY_VERSIONS})==len(r.SURVEY_VERSIONS)
-    assert {v.definition.id for v in enabled}=={'tipi','mini_ipip','rses','swls','swls3','ipip50','attachment_exploration','coping_confidence'}
+    assert {v.definition.id for v in enabled}=={'tipi','mini_ipip','rses','swls','swls3','ipip50','attachment_exploration','coping_confidence','ipip100','scs26','scs12','maas15','ecr_r36','ecr_rs9','dospert30'}
     assert len(r.list_versions('big_five'))>=4
     with pytest.raises(KeyError): r.get_version('unknown')
     for v in enabled:
@@ -25,7 +25,7 @@ def test_registry_has_distinct_versions_and_legacy_ids():
 
 def test_candidates_never_supply_unverified_items():
     candidates=[v for v in registry().list_versions() if not v.enabled]
-    assert {'ipip100','bfi2','ecr_r','ecr_rs','ecr_s'} <= {v.instrument_id for v in candidates}
+    assert {'bfi2','ecr_s'} <= {v.instrument_id for v in candidates}
     assert all(v.definition is None and v.notes for v in candidates)
 
 

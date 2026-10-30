@@ -31,7 +31,7 @@ def render_exploration(conversation,allowed,readiness):
     if not active:
         st.markdown('## 选择一个想了解的方向')
         st.write('选定后再决定题数或方式，每一步都会提示接下来做什么。')
-        descriptions={'mbti':'八题偏好问答、自我确认或查看对话中的性格线索。','attachment_exploration':'围绕一段关系，观察关系焦虑和亲近回避。','mini_ipip':'10、20或50题，按五个维度了解自己。','rses':'10题，了解通常的自我价值感受。','coping_confidence':'6题，回顾面对日常挑战的信心。','swls':'3或5题，回顾整体生活满意度。','conversation_observation':'按顺序设置主题和整理方式，再回到对话。'}
+        descriptions={'mbti':'八题偏好问答、自我确认或查看对话中的性格线索。','attachment_exploration':'原创12题、每关系9题ECR-RS或36题ECR-R，分别了解焦虑和回避。','mini_ipip':'10、20、50或100题，按五个维度了解自己。','rses':'10题，了解通常的自我价值感受。','coping_confidence':'6题，回顾面对日常挑战的信心。','swls':'3或5题，回顾整体生活满意度。','scs26':'遇到挫折时怎样对待自己？12题看总体，26题另看六个面向。','maas15':'15题，回顾日常走神、自动行事和对当下活动的觉察。','dospert30':'30题，分别探索社交、娱乐、伦理、健康安全与财务情境中的行为意向。','conversation_observation':'按顺序设置主题和整理方式，再回到对话。'}
         for tool,label in TOOL_LABELS.items():
             with st.container(border=True):
                 st.button(label,key='feature_'+tool,width='stretch',on_click=choose_feature,args=(tool,))

@@ -79,6 +79,58 @@ _MEANINGS = {
         '本次对处理当前挑战的信心描述认同较少；自报信心不能代替实际能力判断。',
         '本次对逐步处理当前挑战、调整方法或寻求协助的信心描述认同较多。',
         '反思目前一个具体挑战：最小的下一步是什么，你已经拥有或可以请求哪些帮助？'),
+    'self_compassion': (
+        '本次回答较少反映在困难时理解、关爱自己；可结合具体处境核对，不能据此评判自己。',
+        '本次回答较多反映在困难时理解、关爱自己，并以较平衡的方式面对自己的感受。',
+        '反思最近一次遇到困难：你怎样对待自己？怎样的理解和支持对当时的你有帮助？'),
+    'self_kindness': (
+        '本次较少报告在困难时对自己温柔、理解和包容的做法。',
+        '本次较多报告在困难时对自己温柔、理解和包容的做法。',
+        '反思遇到挫折时，你对自己说了什么；哪些话体现了理解，哪些还可以调整？'),
+    'self_judgment_reversed': (
+        '这些题已经反向计分；较低分反映本次报告较多自我批评或对自己的苛刻。',
+        '这些题已经反向计分；较高分反映本次报告较少自我批评或对自己的苛刻。',
+        '反思最近一次注意到自己的不足：你怎样描述这件事，又怎样评价自己？'),
+    'common_humanity': (
+        '本次较少报告把困难和不足视为人们共有经历的做法。',
+        '本次较多报告把困难和不足视为人们共有经历的做法。',
+        '反思一次不顺利的经历：想到他人也可能经历相似困难时，你有什么感受？'),
+    'isolation_reversed': (
+        '这些题已经反向计分；较低分反映本次报告较多孤立感，或觉得只有自己承受困难。',
+        '这些题已经反向计分；较高分反映本次报告较少孤立感，或较少觉得只有自己承受困难。',
+        '反思困难时你是否觉得只有自己如此；哪些具体经历与你的回答相符？'),
+    'scs_mindfulness': (
+        '本次较少报告以平衡、开放的态度留意困难处境中的感受。',
+        '本次较多报告以平衡、开放的态度留意困难处境中的感受。',
+        '反思最近一次难受时，你怎样留意感受，又怎样把事情放在更全面的背景中看？'),
+    'over_identification_reversed': (
+        '这些题已经反向计分；较低分反映本次报告较多被困难或情绪裹挟的体验。',
+        '这些题已经反向计分；较高分反映本次报告较少过度认同，较少被困难或情绪裹挟。',
+        '反思一次强烈情绪出现时，你的注意力集中在什么地方，后来是否有所变化？'),
+    'mindful_attention': (
+        '本次报告较多走神、未留意正在做的事情，或像“自动驾驶”一样行动的体验。',
+        '本次报告较少走神或像“自动驾驶”一样行动的体验，较多留意当下正在发生的事情。',
+        '反思一段普通日常活动：你留意到了哪些细节，哪些时刻的注意力转向了别处？'),
+    'risk_ethical': (
+        '本次较少表示会参与伦理情境中所列的风险行为；这不能用来判定道德品质。',
+        '本次较多表示会参与伦理情境中所列的风险行为；这不等于实际行为或道德品质。',
+        '反思这些情境中，哪些回答最明确，哪些会随具体信息和约束而变化？'),
+    'risk_financial': (
+        '本次较少表示会参与所列财务风险行为；这不是财务能力或风险承受能力测评。',
+        '本次较多表示会参与所列财务风险行为；这不是财务能力或风险承受能力测评。',
+        '反思所列财务情境：哪些信息影响了你的行为意向，哪些情境难以判断？'),
+    'risk_health_safety': (
+        '本次较少表示会参与所列健康安全风险行为，只反映题目情境中的自报意向。',
+        '本次较多表示会参与所列健康安全风险行为，只反映题目情境中的自报意向。',
+        '反思所列健康安全情境：你的回答考虑了哪些具体条件，哪些仍不确定？'),
+    'risk_recreational': (
+        '本次较少表示会参与所列娱乐活动风险行为；这不等于总体勇气或能力。',
+        '本次较多表示会参与所列娱乐活动风险行为；这不等于总体勇气或能力。',
+        '反思所列活动：熟悉程度和具体情境怎样影响了你的行为意向？'),
+    'risk_social': (
+        '本次较少表示会参与所列社交风险行为；这不能单独说明社交能力。',
+        '本次较多表示会参与所列社交风险行为；这不能单独说明社交能力。',
+        '反思所列社交情境：关系、场合和可能后果怎样影响了你的回答？'),
 }
 
 
@@ -168,7 +220,7 @@ def _bars(dimensions,summed):
     return ''.join(parts),label
 
 
-def _interpret(dimensions,definition):
+def _interpret(dimensions,definition,composites=()):
     band_rule=(
         f'依恋解读沿用本原创练习的中点启发式：均分 {ATTACHMENT_MIDDLE_MIN:g}—{ATTACHMENT_MIDDLE_MAX:g}（含边界）为中间区间，区间外分别描述较低或较高一侧；规则及边界未经验证。'
         if definition.id=='attachment_exploration'
@@ -176,11 +228,20 @@ def _interpret(dimensions,definition):
     )
     lines=['### 本次作答解读','',
            '以下由本机依据得分方向生成，用于核对你的回答。量程位置不是人群百分位、概率或诊断。'+band_rule,'']
-    for dimension in dimensions:
+    if definition.id=='ecr_r36':
+        lines.extend(['本结果反映你平时亲密伴侣关系的一般感受，不限于当前一段关系；焦虑与回避分别理解，不据此确定依恋类型。',''])
+    elif definition.id=='ecr_rs9':
+        lines.extend(['本结果仅描述本次所选关系；焦虑与回避分别理解，不自动合并多个对象的结果。',''])
+    scores=[(composite,False) for composite in composites]
+    scores.extend((dimension,definition.display=='sum') for dimension in dimensions)
+    for dimension,summed in scores:
         position=_position(dimension)
         band=(attachment_dimension_band(dimension.mean) if definition.id=='attachment_exploration'
               else 'lower' if position<1/3 else 'higher' if position>2/3 else 'middle')
         lower,higher,prompt=_MEANINGS.get(dimension.key,('本次较少认同这一维度的描述。','本次较多认同这一维度的描述。','反思：哪些具体日常经历与你的回答相符，哪些不同？'))
+        if definition.id=='ecr_r36' and dimension.key in ('anxiety','avoidance'):
+            lower=lower.replace('在本次所选关系中，','在平时亲密伴侣关系中，')
+            higher=higher.replace('在本次所选关系中，','在平时亲密伴侣关系中，')
         if band=='lower':
             wording='在本量程较低一侧'
             meaning=lower
@@ -189,10 +250,10 @@ def _interpret(dimensions,definition):
             meaning=higher
         else:
             wording='在本量程中间一带'
-            meaning='本次回答位于量程中间，暂不判断明确方向。可以看看不同情境下的回答是否会变化，也可能是不同题目的正反方向相互抵消。'
+            meaning='本次回答位于量程中间，暂不判断明确方向。可以核对不同题目或情境下的回答是否存在差异。'
         lines.extend([f'#### {escape(dimension.label)}','',
-                      _raw(dimension,definition.display=='sum')+'；'+wording+'。'+meaning,'',prompt,''])
-    if definition.id in ('mini_ipip','tipi','ipip50'):
+                      _raw(dimension,summed)+'；'+wording+'。'+meaning,'',prompt,''])
+    if definition.id in ('mini_ipip','tipi','ipip50','ipip100'):
         lines.extend(['五个维度分别理解，图形面积和维度合计没有人格总分含义；不同题数与工具的图形不能直接作为变化幅度比较。',''])
         if definition.id=='mini_ipip':
             lines.extend(['这里第四维是负性情绪倾向，高分表示报告的起伏或烦扰更多；它与其他版本的情绪稳定性方向相反。',''])
@@ -200,6 +261,8 @@ def _interpret(dimensions,definition):
             lines.extend(['本版本每维仅两题，描绘较粗略，优先结合具体例子核对。',''])
     if definition.id=='attachment_exploration':
         lines.extend(['这份原创练习只描述本次选定关系，不能给一个人确定稳定的依恋类型；不同关系需分别理解。',''])
+    if definition.id=='dospert30':
+        lines.extend(['这些分数描述行为意向，不表示应该尝试题中行为。五个领域单独理解，不给出总体冒险能力或行为建议。',''])
     lines.extend(['研究说明：'+definition.translation_note,'',definition.interpretation])
     return '\n'.join(lines)
 
@@ -208,10 +271,22 @@ def build_survey_presentation(definition: Questionnaire,result: QuestionnaireRes
     """Render an already-scored result without inferring any additional scores."""
     if result.test_id!=definition.id or set(result.dimensions)!=set(definition.dimension_labels):
         raise ValueError('Result must match the questionnaire and its dimensions.')
+    if set(result.composites)!={spec.key for spec in definition.composites}:
+        raise ValueError('Composite results must match the declared composite keys.')
+    composites=[result.composites[spec.key] for spec in definition.composites]
+    for spec,composite in zip(definition.composites,composites):
+        if (composite.key!=spec.key
+                or composite.min_value!=definition.min_score
+                or composite.max_value!=definition.max_score
+                or not math.isfinite(composite.mean)
+                or not definition.min_score<=composite.mean<=definition.max_score):
+            raise ValueError('A composite result must have its declared key and valid raw range.')
     dimensions=[result.dimensions[key] for key in definition.dimension_labels]
     for dimension in dimensions: _position(dimension)
-    if definition.id in ('mini_ipip','tipi','ipip50') and len(dimensions)==5:
+    visible_dimensions=dimensions if definition.show_dimensions else []
+    if definition.id in ('mini_ipip','tipi','ipip50','ipip100') and len(visible_dimensions)==5:
         svg,label=_radar(dimensions)
     else:
-        svg,label=_bars(dimensions,definition.display=='sum')
-    return SurveyPresentation(svg=svg,markdown=_interpret(dimensions,definition),chart_label=label)
+        svg,label=(_bars(visible_dimensions,definition.display=='sum')
+                   if definition.show_dimensions else _bars(composites,False))
+    return SurveyPresentation(svg=svg,markdown=_interpret(visible_dimensions,definition,composites),chart_label=label)

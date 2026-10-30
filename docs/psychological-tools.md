@@ -1,6 +1,23 @@
-# 心理探索工具说明 · v0.3
+# 心理探索工具说明 · v0.6
 
-更新：2026-10-29。入口位于页面顶栏“心理探索”，目录共有七类工具。当前版本仅用于成年人虚构案例的本地非商业研究，未启用真实用户试用。得分、参考方向和原话校验均不构成诊断、临床效用或人格预测准确性的证明。
+更新：2026-10-30。首页“做心理小测试”的目录共有十个入口，其中八类问卷共15个版本，另有MBTI风格和对话观察。当前版本仅用于成年人虚构案例的本地非商业研究，未启用真实用户试用。得分、参考方向和原话校验均不构成诊断、临床效用或人格预测准确性的证明。
+
+## v0.6新增版本
+
+| 工具 | 题数与结果 | 来源与许可 |
+| --- | --- | --- |
+| IPIP Factor Markers | 新增100题；大五共10/20/50/100题，100题每维20题、1—5均分，保留情绪稳定性方向 | [官方题项与键](https://ipip.ori.org/newBigFive5broadKey.htm)、[公共领域许可](https://ipip.ori.org/newPermission.htm) |
+| SCS / SCS-SF 自我关怀 | 26题六维均分及六维等权总体；12题按作者重排，仅展示总体。负向三维反向后的积极方向在标签中明示 | [26题作者许可与键](https://self-compassion.org/wp-content/uploads/2021/03/SCS-information.pdf)、[12题作者许可与键](https://self-compassion.org/wp-content/uploads/2021/03/SCS-SF-information.pdf)，作者允许广泛使用与翻译，并要求新译本因子验证；本项目尚未完成验证 |
+| MAAS 成人特质版 | 15题，1几乎总是至6几乎从不；原始答案直接均分，不二次反向 | [作者工具页](https://kirkwarrenbrown.com/tools-for-researchers)，其所链成人特质PDF明确公共领域；本次不使用5题状态版 |
+| ECR-R | 36题，一般亲密伴侣关系；焦虑/回避各18题独立1—7均分 | [作者施测与计分](https://labs.psychology.illinois.edu/~rcfraley/measures/ecrritems.htm)、[研究使用/修改FAQ](https://labs.psychology.illinois.edu/~rcfraley/measures/ecrr.htm)，当前仅据非商业研究许可，商业另需许可 |
+| ECR-RS | 每个对象9题，回避6题/焦虑3题；冻结2011版7点量程，四种关系对象分别作答、保存结果与导出，不合并 | [作者关系结构页](https://labs.psychology.illinois.edu/~rcfraley/measures/relstructures.htm)明确九题关系版及可翻译；当前研究用途依据该页所链ECR-R FAQ，不声称独立CC许可 |
+| DOSPERT RT | 30题，五领域各6题，加总6—42；无跨领域总分，不含风险感知RP或预期收益版 | [Blais与Weber（2006）出版社全文附录A.1](https://www.cambridge.org/core/journals/judgment-and-decision-making/article/domainspecific-risktaking-dospert-scale-for-adultpopulations/419BDAAF215313A7EE216F51F38AD205)，CC BY3.0；本项目署名并注明中文翻译改动 |
+
+以上中文均为项目研究自译，未经中文信效度验证，不据此宣称已验证中文版。原有版本保留，除明确的SCS总体外，不自动合成不同维度或不同工具的总分。SCS26总体不是直接平均26题；先各维求均分再六维等权。SCS12内部保留六维计分以计算总体，但不在图表、原始分数区或导出提供六维画像。SCS原文中间点未写文字，本项目补充的频率锚点在介绍与选项中明示。
+
+ECR-R正式计分键的反向题是9、11、20、22、26、27、28、29、30、31、33、34、35、36，不使用作者主页IRT题库排序。ECR-RS反向1—4，回避1—6、焦虑7—9；不同关系结果各自保存。两者不沿用原创12题的启发式类型阈值。
+
+下面保留既有版本说明与历史验证记录；v0.6验证见[v0.6说明](v06-release.md)。
 
 ## 工具与计分
 

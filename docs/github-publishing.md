@@ -52,6 +52,7 @@ docs/superpowers/plans/2026-10-22-mental-support-agent-work-plan.md
 docs/superpowers/plans/2026-10-29-chat-experience-plan.md
 docs/superpowers/plans/2026-10-29-conversational-exploration-plan.md
 docs/superpowers/plans/2026-10-29-personality-exploration-plan.md
+docs/superpowers/plans/2026-10-30-expanded-questionnaires-plan.md
 docs/superpowers/plans/2026-10-30-exploration-guidance-plan.md
 docs/superpowers/plans/2026-10-30-results-and-titles-plan.md
 docs/superpowers/plans/2026-10-30-session-api-settings-plan.md
@@ -59,6 +60,7 @@ docs/superpowers/specs/2026-10-22-mental-support-agent-design.md
 docs/superpowers/specs/2026-10-29-chat-experience-design.md
 docs/superpowers/specs/2026-10-29-conversational-exploration-design.md
 docs/superpowers/specs/2026-10-29-personality-exploration-design.md
+docs/superpowers/specs/2026-10-30-expanded-questionnaires-design.md
 docs/superpowers/specs/2026-10-30-exploration-guidance-design.md
 docs/superpowers/specs/2026-10-30-guided-flows-design.md
 docs/superpowers/specs/2026-10-30-results-and-titles-design.md
@@ -75,6 +77,7 @@ docs/v052-progress.md
 docs/v052-release.md
 docs/v053-release.md
 docs/v054-release.md
+docs/v06-release.md
 policies/actions.json
 policies/fallbacks.json
 policies/help_resources.json
@@ -95,6 +98,7 @@ scripts/live_smoke.py
 scripts/seed_research_data.py
 start_demo.bat
 support_agent/__init__.py
+support_agent/additional_personality_tests.py
 support_agent/api_settings_ui.py
 support_agent/assessment.py
 support_agent/attachment_questions.py
@@ -123,9 +127,11 @@ support_agent/policy.py
 support_agent/psychometrics.py
 support_agent/published_personality_tests.py
 support_agent/questionnaire_ui.py
+support_agent/relationship_risk_tests.py
 support_agent/research_wellbeing_tests.py
 support_agent/response.py
 support_agent/schemas.py
+support_agent/self_care_tests.py
 support_agent/session.py
 support_agent/session_connection.py
 support_agent/survey_presentation.py
@@ -142,6 +148,7 @@ tests/test_api_settings_ui.py
 tests/test_app.py
 tests/test_assessment.py
 tests/test_cli.py
+tests/test_composite_scoring.py
 tests/test_config.py
 tests/test_conversation_observation.py
 tests/test_conversation_titles.py
@@ -150,6 +157,8 @@ tests/test_data.py
 tests/test_deadlines.py
 tests/test_dialogue_preferences.py
 tests/test_eval_split.py
+tests/test_expanded_questionnaire_integration.py
+tests/test_expanded_survey_presentation.py
 tests/test_explicit_connection.py
 tests/test_exploration_catalog.py
 tests/test_exploration_guidance.py
@@ -157,6 +166,7 @@ tests/test_exploration_state.py
 tests/test_exploration_ui.py
 tests/test_guardrails.py
 tests/test_guided_entry.py
+tests/test_ipip100.py
 tests/test_knowledge.py
 tests/test_live_smoke.py
 tests/test_model_client.py
@@ -174,6 +184,8 @@ tests/test_policy.py
 tests/test_psychometrics.py
 tests/test_published_personality_tests.py
 tests/test_questionnaire_wizard.py
+tests/test_relationship_risk_definitions.py
+tests/test_self_care_definitions.py
 tests/test_session_connection.py
 tests/test_session_privacy.py
 tests/test_survey_presentation.py
