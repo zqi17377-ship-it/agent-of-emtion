@@ -52,12 +52,14 @@ docs/superpowers/plans/2026-10-22-mental-support-agent-work-plan.md
 docs/superpowers/plans/2026-10-29-chat-experience-plan.md
 docs/superpowers/plans/2026-10-29-conversational-exploration-plan.md
 docs/superpowers/plans/2026-10-29-personality-exploration-plan.md
+docs/superpowers/plans/2026-10-30-exploration-guidance-plan.md
 docs/superpowers/plans/2026-10-30-results-and-titles-plan.md
 docs/superpowers/plans/2026-10-30-session-api-settings-plan.md
 docs/superpowers/specs/2026-10-22-mental-support-agent-design.md
 docs/superpowers/specs/2026-10-29-chat-experience-design.md
 docs/superpowers/specs/2026-10-29-conversational-exploration-design.md
 docs/superpowers/specs/2026-10-29-personality-exploration-design.md
+docs/superpowers/specs/2026-10-30-exploration-guidance-design.md
 docs/superpowers/specs/2026-10-30-guided-flows-design.md
 docs/superpowers/specs/2026-10-30-results-and-titles-design.md
 docs/superpowers/specs/2026-10-30-session-api-settings-design.md
@@ -72,6 +74,7 @@ docs/v051-release.md
 docs/v052-progress.md
 docs/v052-release.md
 docs/v053-release.md
+docs/v054-release.md
 policies/actions.json
 policies/fallbacks.json
 policies/help_resources.json
@@ -109,6 +112,7 @@ support_agent/knowledge.py
 support_agent/long_personality_tests.py
 support_agent/model_client.py
 support_agent/observation_jobs.py
+support_agent/observation_progress.py
 support_agent/observation_scheduler.py
 support_agent/observation_ui.py
 support_agent/onboarding_ui.py
@@ -148,6 +152,7 @@ tests/test_dialogue_preferences.py
 tests/test_eval_split.py
 tests/test_explicit_connection.py
 tests/test_exploration_catalog.py
+tests/test_exploration_guidance.py
 tests/test_exploration_state.py
 tests/test_exploration_ui.py
 tests/test_guardrails.py
@@ -158,6 +163,7 @@ tests/test_model_client.py
 tests/test_observation_chat_handoff.py
 tests/test_observation_integration.py
 tests/test_observation_jobs.py
+tests/test_observation_progress.py
 tests/test_observation_scheduler.py
 tests/test_observation_ui.py
 tests/test_observation_wizard.py

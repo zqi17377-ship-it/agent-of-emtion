@@ -82,4 +82,10 @@ button:focus-visible,a:focus-visible{outline:2px solid #5e8065!important;outline
 .stMainBlockContainer [data-testid="stRadioOption"]:has(input:checked),.stMainBlockContainer [data-testid="stRadioOption"]:has(input:checked):hover{border-color:#496e55;background:#e8f0e3}
 .stMainBlockContainer [data-testid="stRadioOption"]:has(input:focus-visible){outline:2px solid #5e8065;outline-offset:2px}
 .stMainBlockContainer [data-testid="stRadioOption"]:has(input:disabled){opacity:.6;cursor:not-allowed}
+[class*="st-key-observe_domain_card_"]{padding:14px 18px!important;background:#fcfcf8;border-radius:13px!important}
+[class*="st-key-observe_domain_card_"]:has(input:checked){border-color:#496e55!important;background:#edf2e8}
+[class*="st-key-observe_domain_card_"] [data-testid="stCheckbox"] p{font-size:16px!important;font-weight:600!important}
+[class*="st-key-observe_domain_card_"] [data-testid="stCaptionContainer"]{color:#697b64;line-height:1.65}
+.st-key-observation_progress_card{padding:17px 20px!important;border-radius:14px!important;background:#f1f5ec}
+.st-key-observation_progress_card [data-testid="stMarkdownContainer"] p{font-size:13px;line-height:1.65}
 @media(max-width:700px){.flow-heading{padding-top:10px}.flow-heading h2{font-size:24px!important}[class*="st-key-home_card_"]{padding:14px 16px!important}.welcome h1{font-size:29px!important}.flow-heading p{font-size:14px}}

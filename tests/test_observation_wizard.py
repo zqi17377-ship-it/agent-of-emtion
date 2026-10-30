@@ -25,8 +25,9 @@ def ready(app):
     p='explore_'+c.id+'_observe_wizard_'
     app.checkbox(key=p+'research').check().run();advance(app)
     app.checkbox(key=p+'api').check().run();advance(app)
-    app.multiselect(key=p+'domains').set_value(['mbti']).run();advance(app)
-    app.selectbox(key=p+'mode').select('auto').run();advance(app)
+    app.checkbox(key=p+'domain_big_five').uncheck().run()
+    app.checkbox(key=p+'domain_attachment').uncheck().run();advance(app)
+    app.radio(key=p+'mode').set_value('auto').run();advance(app)
     return c,p
 
 def test_confirmation_is_only_activation_and_pages_preserve_draft(monkeypatch):
@@ -36,7 +37,9 @@ def test_confirmation_is_only_activation_and_pages_preserve_draft(monkeypatch):
     assert c.exploration.observation.mode=='off'
     app.button(key='observation_back').click().run()
     app.button(key='observation_back').click().run()
-    assert app.multiselect(key=p+'domains').value==['mbti']
+    assert app.checkbox(key=p+'domain_mbti').value
+    assert not app.checkbox(key=p+'domain_big_five').value
+    assert not app.checkbox(key=p+'domain_attachment').value
     advance(app);advance(app)
     app.checkbox(key=p+'consent').check().run()
     assert c.exploration.observation.mode=='off'

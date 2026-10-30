@@ -156,7 +156,7 @@ def render_sidebar():
                     st.rerun()
         st.button('API 设置',key='open_api_settings',icon=':material/settings:',on_click=open_api_settings,width='stretch')
         st.toggle('显示研究记录',key='show_research',value=False,help='查看软件动作与原文依据；这些记录不是诊断报告。')
-        st.markdown('<div class="sidebar-footnote">研究预览 v0.5.3<br>仅限成年人虚构案例</div>',unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-footnote">研究预览 v0.5.4<br>仅限成年人虚构案例</div>',unsafe_allow_html=True)
 
 
 def render_welcome():
@@ -250,7 +250,7 @@ def render():
         with st.container(horizontal=True,key='conversation_footer'):
             st.caption('当前对话仅在本页保留。')
             st.button('清空本轮',key='clear_current',type='tertiary',icon=':material/delete_sweep:',on_click=clear_current)
-    render_observation_entry(c)
+    render_observation_entry(c,readiness)
     if not enabled:
         st.info('还差一点准备，就可以开始对话。')
         st.button('完成开始前准备',key='prepare_chat',on_click=begin_chat_setup,type='primary')

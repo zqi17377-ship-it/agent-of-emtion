@@ -7,6 +7,7 @@ from .exploration_state import exploration_paused
 from .session_connection import get_session_settings
 
 DOMAIN_LABELS={'mbti':'MBTI风格偏好','big_five':'大五人格线索','attachment':'关系中的依恋倾向'}
+DOMAIN_DESCRIPTIONS={'mbti':'从日常例子中探索社交恢复、关注信息、做决定和安排事情的偏好。','big_five':'了解外向性、宜人性、尽责性、负性情绪倾向和经验开放性的线索。','attachment':'围绕同一段关系，探索对回应和亲近距离的感受；聊天后可标注匿名关系对象。'}
 DIMENSION_LABELS={'EI':'社交恢复方式','SN':'信息关注','TF':'决策偏好','JP':'安排方式','extraversion':'外向性','agreeableness':'宜人性','conscientiousness':'尽责性','neuroticism':'负性情绪倾向','openness':'经验开放性','anxiety':'关系焦虑','avoidance':'亲近回避'}
 RELATIONS={'partner':'伴侣','friend':'朋友','parent':'家人','other':'其他重要关系'}
 MODE_LABELS={'off':'关闭','manual':'仅在我点击时整理','auto':'达到门槛后自动整理'}
@@ -17,6 +18,17 @@ def open_observation():
     st.session_state['workspace_view']='exploration'
     st.session_state['exploration_tool']='conversation_observation'
     st.session_state['feature_flow_active']=True
+
+
+def _setup_draft(c):
+    state=c.exploration.observation
+    return c.exploration.flows.setdefault('observation_setup',{'step':0,'domains':list(state.domains or DOMAIN_LABELS),'mode':state.mode if state.mode!='off' else 'manual','consent':False,'page':'done' if state.mode!='off' else 'setup'})
+
+
+def open_observation_report():
+    c=st.session_state['workspace'].active
+    _setup_draft(c)['page']='report'
+    open_observation()
 
 
 def revoke_observation_consents():
@@ -52,11 +64,26 @@ def export_observation_report(c):
     return '\n'.join(lines)
 
 
-def render_observation_entry(c):
-    with st.container(key='observation_entry',horizontal=True,vertical_alignment='center'):
-        mode=MODE_LABELS.get(c.exploration.observation.mode,'关闭')
-        st.caption('对话观察 · '+mode)
-        st.button('设置对话探索',key='open_conversation_observation',icon=':material/psychology:',type='tertiary',on_click=open_observation)
+def render_observation_entry(c,readiness):
+    state=c.exploration.observation
+    mode=MODE_LABELS.get(state.mode,'关闭')
+    if state.mode=='off':
+        with st.container(key='observation_entry',horizontal=True,vertical_alignment='center'):
+            st.caption('对话观察 · '+mode)
+            st.button('设置对话探索',key='open_conversation_observation',icon=':material/psychology:',type='tertiary',on_click=open_observation)
+        return
+    from .observation_progress import observation_progress
+    status=observation_progress(state,c.state.messages,authorized=_authorized(c,readiness),live=c.gateway_mode=='live',paused=exploration_paused(c.state.previous_decision))
+    with st.container(key='observation_progress_card',border=True):
+        st.markdown('**'+status.title+'**')
+        st.caption('对话观察 · '+mode+' · '+'、'.join(DOMAIN_LABELS[x] for x in state.domains))
+        if status.fraction is not None:
+            st.progress(status.fraction)
+        st.write(status.detail)
+        st.caption('进度仅表示聊天资料量，不代表性格分数或判断准确度。')
+        with st.container(horizontal=True,vertical_alignment='center'):
+            st.button('打开观察报告',key='open_conversation_report',icon=':material/description:',on_click=open_observation_report)
+            st.button('设置对话探索',key='open_conversation_observation',icon=':material/psychology:',type='tertiary',on_click=open_observation)
 
 
 @st.fragment(run_every='1s')
@@ -81,7 +108,7 @@ def render_observation_panel(c,allowed,readiness):
     state=c.exploration.observation
     prefix='explore_'+c.id+'_observe_'
     widget=prefix+'wizard_'
-    draft=c.exploration.flows.setdefault('observation_setup',{'step':0,'domains':list(state.domains or DOMAIN_LABELS),'mode':state.mode if state.mode!='off' else 'manual','consent':False,'page':'done' if state.mode!='off' else 'setup'})
+    draft=_setup_draft(c)
     if state.mode!='off':
         if st.button('暂停并撤回对话观察同意',key='observation_revoke'):
             configure_observation(state,'off',())
@@ -126,26 +153,37 @@ def render_observation_panel(c,allowed,readiness):
         if valid and c.gateway_mode!='live':
             c.gateway_mode='live'
     elif index==2:
-        draft['domains']=st.multiselect('允许分析的主题',list(DOMAIN_LABELS),default=draft['domains'],format_func=DOMAIN_LABELS.get,key=widget+'domains')
+        st.write('你想从聊天中了解哪些方面？可以选择一个或多个主题。')
+        selected=[]
+        for domain,label in DOMAIN_LABELS.items():
+            with st.container(key='observe_domain_card_'+domain,border=True):
+                checked=st.checkbox(label,value=domain in draft['domains'],key=widget+'domain_'+domain)
+                st.caption(DOMAIN_DESCRIPTIONS[domain])
+            if checked: selected.append(domain)
+        draft['domains']=selected
+        st.caption(f'已选择 {len(selected)} 个主题。你可以稍后在聊天页修改。')
+        if not selected: st.info('至少选择一个主题，才能继续。')
         valid=bool(draft['domains'])
     elif index==3:
-        draft['mode']=st.selectbox('分析方式',['manual','auto'],index=1 if draft['mode']=='auto' else 0,format_func=MODE_LABELS.get,key=widget+'mode')
-        st.caption('自动模式：20条有效用户消息且累计至少1,000字后检查；之后每新增10条复查，最多3次。')
+        st.write('选择什么时候整理聊天中的线索。两种方式都可以先自由聊天。')
+        draft['mode']=st.radio('分析方式',['manual','auto'],index=1 if draft['mode']=='auto' else 0,format_func=MODE_LABELS.get,key=widget+'mode',captions=['由你决定整理时机。至少积累2条有效用户消息后，在观察报告页点击整理。','先自由聊天；20条有效用户消息且累计至少1,000字后自动检查，之后每新增10条复查，最多3次。'])
         st.caption('手动、自动和格式修复合计最多6次额外请求；支持对话的请求另计。')
     else:
         st.write('主题：'+'、'.join(DOMAIN_LABELS[x] for x in draft['domains']))
         st.write('整理方式：'+MODE_LABELS[draft['mode']])
+        st.caption('确认后将直接进入当前聊天，可以从一件具体的日常小事说起。设置与报告可随时从聊天页打开。')
         draft['consent']=st.checkbox('同意分析本对话的用户文字，知悉会额外调用 DeepSeek',value=draft['consent'],key=widget+'consent')
-        if st.button('确认启用对话探索',key='observation_confirm',type='primary',disabled=not draft['consent'] or not _authorized(c,readiness)):
+        if st.button('启用并开始对话',key='observation_confirm',type='primary',disabled=not draft['consent'] or not _authorized(c,readiness)):
             configure_observation(state,draft['mode'],tuple(draft['domains']))
             draft['page']='done'
             st.session_state['workspace_view']='chat'
             st.session_state['feature_flow_active']=False
             st.rerun()
-    if index>0 and st.button('上一步',key='observation_back'):
-        draft['step']-=1;st.rerun()
-    if index<4 and st.button('下一步',key='observation_next',type='primary',disabled=not valid):
-        draft['step']+=1;st.rerun()
+    with st.container(key='observation_navigation',horizontal=True):
+        if index>0 and st.button('上一步',key='observation_back'):
+            draft['step']-=1;st.rerun()
+        if index<4 and st.button('下一步',key='observation_next',type='primary',disabled=not valid):
+            draft['step']+=1;st.rerun()
 
 
 def _render_relations(c,allowed,prefix):
