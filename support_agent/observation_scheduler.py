@@ -6,6 +6,10 @@ from uuid import uuid4
 from .conversation_observation import build_snapshot
 from .schemas import ModelCallError
 
+AUTO_FIRST_MESSAGES=6
+AUTO_FIRST_CHARS=240
+AUTO_NEW_MESSAGES=6
+
 @dataclass
 class RequestLedger:
     spent: int = 0
@@ -43,6 +47,7 @@ class ObservationState:
     conversation_id: str = ''
     mode: str = 'off'
     domains: tuple[str,...] = ()
+    subject_mode: str = 'self'
     consent_revision: int = 0
     generation: str = field(default_factory=lambda:uuid4().hex)
     observation_revision: int = 0
@@ -81,7 +86,7 @@ def fresh_observation_state(previous=None):
         previous.generation=uuid4().hex
         previous.mode='off'
         previous.report=None
-    return ObservationState(ledger=previous.ledger,automatic_count=previous.automatic_count,
+    return ObservationState(ledger=previous.ledger,subject_mode=getattr(previous,'subject_mode','self'),automatic_count=previous.automatic_count,
                             last_auto_candidate_count=previous.last_auto_candidate_count)
 
 def configure_observation(state,mode,domains):
@@ -111,7 +116,7 @@ def count_candidates(messages):
     for message in messages:
         if message.role!='user': continue
         text=''.join(message.content.split())
-        if text in seen or text.lower() in assent or sum(c.isalnum() for c in text)<10: continue
+        if text in seen or text.lower() in assent or sum(c.isalnum() for c in text)<5: continue
         seen.add(text); count+=1; chars+=len(text)
     return count,chars
 
@@ -131,10 +136,11 @@ def eligibility_reason(state,messages,*,manual,live,authorized,paused):
     if state.mode!='auto': return 'manual_only'
     if state.automatic_count>=3: return 'auto_limit'
     if state.automatic_count and state.last_auto_candidate_count>0:
-        return None if count-state.last_auto_candidate_count>=10 else 'insufficient_new'
-    return None if count>=20 and chars>=1000 else 'insufficient'
+        return None if count-state.last_auto_candidate_count>=AUTO_NEW_MESSAGES else 'insufficient_new'
+    return None if count>=AUTO_FIRST_MESSAGES and chars>=AUTO_FIRST_CHARS else 'insufficient'
 
 
 def snapshot_fingerprint(state,messages):
     return build_snapshot(state.conversation_id,state.generation,state.consent_revision,state.observation_revision,
-                          messages,state.domains,state.relations,state.message_relations,state.excluded_keys).fingerprint
+                          messages,state.domains,state.relations,state.message_relations,state.excluded_keys,
+                          subject_mode=getattr(state,'subject_mode','self')).fingerprint

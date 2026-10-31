@@ -64,8 +64,15 @@ def test_repeated_text_does_not_accumulate():
 
 
 def test_verified_counter_evidence_remains_mixed():
-    data = observation(counter_evidence=[observation()['evidence'][0]])
-    assert run(data).observations[0].direction == 'mixed'
+    ms = messages() + [Message(
+        id='counter', role='user',
+        content='周末和熟悉的朋友见面后，我经常更有精神，还想继续找人聊天。',
+    )]
+    data = observation(counter_evidence=[dict(
+        message_id='counter', quote=ms[-1].content,
+        event_id='another_weekend', context_kind='friends',
+    )])
+    assert run(data, ms).observations[0].direction == 'mixed'
 
 
 @pytest.mark.parametrize('bad', ['quote', 'message_id'])

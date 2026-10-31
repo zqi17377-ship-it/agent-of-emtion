@@ -54,6 +54,7 @@ docs/superpowers/plans/2026-10-29-conversational-exploration-plan.md
 docs/superpowers/plans/2026-10-29-personality-exploration-plan.md
 docs/superpowers/plans/2026-10-30-expanded-questionnaires-plan.md
 docs/superpowers/plans/2026-10-30-exploration-guidance-plan.md
+docs/superpowers/plans/2026-10-30-guided-personality-dialogue-plan.md
 docs/superpowers/plans/2026-10-30-remaining-scales-plan.md
 docs/superpowers/plans/2026-10-30-results-and-titles-plan.md
 docs/superpowers/plans/2026-10-30-session-api-settings-plan.md
@@ -64,6 +65,7 @@ docs/superpowers/specs/2026-10-29-personality-exploration-design.md
 docs/superpowers/specs/2026-10-30-expanded-questionnaires-design.md
 docs/superpowers/specs/2026-10-30-exploration-guidance-design.md
 docs/superpowers/specs/2026-10-30-guided-flows-design.md
+docs/superpowers/specs/2026-10-30-guided-personality-dialogue-design.md
 docs/superpowers/specs/2026-10-30-remaining-scales-design.md
 docs/superpowers/specs/2026-10-30-results-and-titles-design.md
 docs/superpowers/specs/2026-10-30-session-api-settings-design.md
@@ -82,6 +84,7 @@ docs/v054-release.md
 docs/v06-release.md
 docs/v061-release.md
 docs/v062-release.md
+docs/v07-release.md
 policies/actions.json
 policies/fallbacks.json
 policies/help_resources.json
@@ -98,6 +101,7 @@ scripts/__init__.py
 scripts/check_data.py
 scripts/eval_conversation_observation.py
 scripts/evaluate.py
+scripts/evaluate_guided_dialogue.py
 scripts/live_smoke.py
 scripts/seed_research_data.py
 start_demo.bat
@@ -111,6 +115,7 @@ support_agent/config.py
 support_agent/connection_check.py
 support_agent/conversation_observation.py
 support_agent/conversations.py
+support_agent/dialogue_exploration.py
 support_agent/emotion_regulation_tests.py
 support_agent/exploration_catalog.py
 support_agent/exploration_state.py
@@ -122,6 +127,7 @@ support_agent/long_personality_tests.py
 support_agent/mindfulness_flexibility_tests.py
 support_agent/model_client.py
 support_agent/observation_jobs.py
+support_agent/observation_presentation.py
 support_agent/observation_progress.py
 support_agent/observation_scheduler.py
 support_agent/observation_ui.py
@@ -161,6 +167,7 @@ tests/test_conversation_titles.py
 tests/test_conversations.py
 tests/test_data.py
 tests/test_deadlines.py
+tests/test_dialogue_exploration.py
 tests/test_dialogue_preferences.py
 tests/test_erq30.py
 tests/test_eval_split.py
@@ -173,15 +180,19 @@ tests/test_exploration_state.py
 tests/test_exploration_ui.py
 tests/test_guardrails.py
 tests/test_guided_entry.py
+tests/test_guided_observation_flow.py
 tests/test_ipip100.py
 tests/test_knowledge.py
 tests/test_live_smoke.py
 tests/test_mindfulness_flexibility_tests.py
 tests/test_model_client.py
 tests/test_observation_chat_handoff.py
+tests/test_observation_coverage.py
+tests/test_observation_gateway.py
 tests/test_observation_integration.py
 tests/test_observation_jobs.py
 tests/test_observation_monitor.py
+tests/test_observation_presentation.py
 tests/test_observation_progress.py
 tests/test_observation_scheduler.py
 tests/test_observation_ui.py

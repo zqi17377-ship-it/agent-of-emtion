@@ -3,15 +3,27 @@ import json
 from pydantic import ValidationError
 from .config import ROOT
 from .schemas import Assessment, Message, ModelCallError
+from .dialogue_exploration import exploration_payload
 
 
-def assess(messages, previous, gateway, budget):
+def assess(messages, previous, gateway, budget, *, exploration_context=None, inquiry_state=None):
     instructions = (ROOT / 'prompts/assess.md').read_text(encoding='utf-8')
     data = {'conversation': [m.model_dump() for m in messages], 'previous_decision': previous.model_dump() if previous else None}
+    exploration = exploration_payload(exploration_context, inquiry_state)
+    if exploration is not None:
+        data['exploration'] = exploration
     inputs = [Message(role='user', content=json.dumps(data, ensure_ascii=False))]
+    schema=Assessment.model_json_schema()
+    feedback_fields={'reply_kind','continuation','inquiry_quote','inquiry_topic'}
+    if exploration is not None:
+        schema['required']=list(dict.fromkeys([*schema.get('required',[]),*sorted(feedback_fields)]))
     for attempt in range(2):
         try:
-            result = gateway.generate(inputs, instructions, Assessment.model_json_schema(), budget)
+            result = gateway.generate(inputs, instructions, schema, budget)
+            if exploration is not None:
+                raw=json.loads(result.text)
+                if not isinstance(raw,dict) or not feedback_fields<=raw.keys():
+                    raise ValueError('missing_interview_feedback')
             a = Assessment.model_validate_json(result.text)
             users = {m.id: m.content for m in messages if m.role == 'user'}
             positions = {m.id: i for i,m in enumerate(messages) if m.role == 'user'}

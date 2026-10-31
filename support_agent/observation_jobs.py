@@ -37,7 +37,8 @@ def start_observation(state,messages,conversation_id,gateway_factory,*,manual,au
     with state.lock:
         if eligibility_reason(state,messages,manual=manual,authorized=authorized,live=live,paused=paused): return False
         snapshot=build_snapshot(conversation_id,state.generation,state.consent_revision,state.observation_revision,
-                                messages,state.domains,state.relations,state.message_relations,state.excluded_keys)
+                                messages,state.domains,state.relations,state.message_relations,state.excluded_keys,
+                                subject_mode=getattr(state,'subject_mode','self'))
         reservation=state.ledger.reserve(2)
         if reservation is None: return False
         state.conversation_id=conversation_id
@@ -52,7 +53,7 @@ def start_observation(state,messages,conversation_id,gateway_factory,*,manual,au
     def run():
         gateway=None;result=None;failure=None
         try:
-            budget=CallBudget(limit=reservation.remaining,deadline_seconds=40)
+            budget=CallBudget(limit=reservation.remaining,deadline_seconds=90,max_request_seconds=45)
             gateway=_AccountedGateway(gateway_factory,reservation,is_current)
             result=analyze_observations(snapshot,gateway,budget)
         except Exception as error:
@@ -92,5 +93,6 @@ def _snapshot_is_current(state,snapshot):
     if state.mode=='off': return False
     current=build_snapshot(state.conversation_id,state.generation,state.consent_revision,
                            state.observation_revision,snapshot.messages,state.domains,
-                           state.relations,state.message_relations,state.excluded_keys)
+                           state.relations,state.message_relations,state.excluded_keys,
+                           subject_mode=getattr(state,'subject_mode','self'))
     return current.fingerprint==snapshot.fingerprint

@@ -1,10 +1,11 @@
 """Opt-in settings, finite background monitoring and correctable observations."""
 import streamlit as st
 from .model_client import make_gateway
-from .observation_scheduler import configure_observation,correct_observation,count_candidates,eligibility_reason
+from .observation_scheduler import configure_observation,correct_observation,count_candidates,eligibility_reason,AUTO_FIRST_MESSAGES,AUTO_FIRST_CHARS,AUTO_NEW_MESSAGES
 from .observation_jobs import start_observation,poll_observation
 from .exploration_state import exploration_paused
 from .session_connection import get_session_settings
+from .observation_presentation import describe_observation
 
 DOMAIN_LABELS={'mbti':'MBTI风格偏好','big_five':'大五人格线索','attachment':'关系中的依恋倾向'}
 DOMAIN_DESCRIPTIONS={'mbti':'从日常例子中探索社交恢复、关注信息、做决定和安排事情的偏好。','big_five':'了解外向性、宜人性、尽责性、负性情绪倾向和经验开放性的线索。','attachment':'围绕同一段关系，探索对回应和亲近距离的感受；聊天后可标注匿名关系对象。'}
@@ -31,6 +32,17 @@ def open_observation_report():
     open_observation()
 
 
+def open_observation_relations():
+    c=st.session_state['workspace'].active
+    _setup_draft(c)['page']='relations'
+    open_observation()
+
+
+def return_to_chat():
+    st.session_state['workspace_view']='chat'
+    st.session_state['feature_flow_active']=False
+
+
 def revoke_observation_consents():
     workspace=st.session_state.get('workspace')
     if workspace:
@@ -53,14 +65,18 @@ def _authorized(c,readiness):
 
 def export_observation_report(c):
     state=c.exploration.observation
-    lines=['# 对话中的性格与关系观察','','探索性线索，不是官方施测、量表得分或心理诊断。']
+    lines=['# 对话中的性格与关系观察','','分析对象：本次成年人虚构案例中的叙述者。探索性线索，不是官方施测、量表得分或心理诊断。']
     if not state.report: return '\n'.join(lines)
     for observation in state.report.observations:
+        view=describe_observation(observation)
         lines.extend(['','## '+DIMENSION_LABELS.get(observation.dimension,observation.dimension),
-                      DIRECTION_LABELS.get(observation.direction,observation.direction)])
+                      view.level_label+' · '+view.direction_label,view.summary])
+        if getattr(observation,'coverage_reason',''): lines.append(observation.coverage_reason)
         if observation.relation_id: lines.append('本次匿名关系：'+observation.relation_id)
         for item in observation.evidence: lines.append('依据：'+item.quote)
         for item in observation.counter_evidence: lines.append('不同线索：'+item.quote)
+        for alternative in view.alternatives: lines.append(alternative)
+        lines.append('下一步可以聊：'+view.next_question)
     return '\n'.join(lines)
 
 
@@ -84,6 +100,8 @@ def render_observation_entry(c,readiness):
             st.write(status.detail)
             st.caption('进度仅表示聊天资料量，不代表性格分数或判断准确度。')
             st.button('设置对话探索',key='open_conversation_observation',icon=':material/psychology:',type='tertiary',on_click=open_observation)
+            if 'attachment' in state.domains:
+                st.button('管理匿名关系对象',key='open_conversation_relations',type='tertiary',on_click=open_observation_relations)
 
 
 @st.fragment(run_every='1s')
@@ -96,7 +114,7 @@ def render_observation_monitor(readiness):
     if accepted:
         st.rerun(scope='app')
     settings=get_session_settings()
-    started=start_observation(state,c.state.messages,c.id,lambda:make_gateway(settings=settings),manual=False,authorized=authorized,live=c.gateway_mode=='live',paused=paused)
+    started=start_observation(state,c.state.messages,c.id,lambda:make_gateway(settings=settings,purpose='observation'),manual=False,authorized=authorized,live=c.gateway_mode=='live',paused=paused)
     if started:
         st.rerun(scope='app')
     if state.pending_job is not None and st.session_state.get('workspace_view')!='chat':
@@ -138,7 +156,7 @@ def render_observation_panel(c,allowed,readiness):
     step_header('从对话探索自己',steps,index)
     valid=True
     if index==0:
-        st.write('先倾听，再整理可核对的性格和关系线索。探索性观察不是心理诊断，信息不足时暂不判断。')
+        st.write('围绕本次成年人虚构案例，一次聊一个具体问题，再整理行为、动机、情境和不同做法。已有线索会分层展示，不必等所有维度都充分。')
         valid=research_checkbox(widget+'research')
     elif index==1:
         st.write('此功能使用 DeepSeek 分析你允许的用户文字，会产生额外调用费用。使用本次会话中保存的API配置。')
@@ -166,7 +184,7 @@ def render_observation_panel(c,allowed,readiness):
         valid=bool(draft['domains'])
     elif index==3:
         st.write('选择什么时候整理聊天中的线索。两种方式都可以先自由聊天。')
-        draft['mode']=st.radio('分析方式',['manual','auto'],index=1 if draft['mode']=='auto' else 0,format_func=MODE_LABELS.get,key=widget+'mode',captions=['由你决定整理时机。至少积累2条有效用户消息后，在观察报告页点击整理。','先自由聊天；20条有效用户消息且累计至少1,000字后自动检查，之后每新增10条复查，最多3次。'])
+        draft['mode']=st.radio('分析方式',['manual','auto'],index=1 if draft['mode']=='auto' else 0,format_func=MODE_LABELS.get,key=widget+'mode',captions=['由你决定整理时机。至少积累2条有效用户消息后，在观察报告页点击整理。',f'先自由聊天；{AUTO_FIRST_MESSAGES}条有效表达且累计至少{AUTO_FIRST_CHARS}字后初步整理，之后每新增{AUTO_NEW_MESSAGES}条复查，最多3次。'])
         st.caption('手动、自动和格式修复合计最多6次额外请求；支持对话的请求另计。')
     else:
         st.write('主题：'+'、'.join(DOMAIN_LABELS[x] for x in draft['domains']))
@@ -190,17 +208,20 @@ def _render_relations(c,allowed,prefix):
     state=c.exploration.observation
     st.markdown('### 管理关系对象')
     st.caption('依恋观察需要明确是哪段关系。这里使用匿名代号；两位朋友分别建立对象。')
+    st.caption('新建对象后，会选为下一条消息的对象；可以在聊天页更改。')
     kind=st.selectbox('新增关系类别',list(RELATIONS),format_func=RELATIONS.get,key=prefix+'new_relation_kind')
     if st.button('添加匿名关系',key=prefix+'add_relation',disabled=not allowed or len(state.relations)>=12):
         index=1
         while f'{kind}_{index}' in state.relations: index+=1
         state.relations[f'{kind}_{index}']=kind
         state.observation_revision+=1
+        st.session_state[prefix+'next_relation']=f'{kind}_{index}'
         st.rerun()
     if state.relations:
         for relation_id,kind in state.relations.items():
             st.write(RELATIONS.get(kind,'关系')+' · '+relation_id)
         st.caption('对象已保留。返回探索状态后，可进入逐条消息标注。')
+        st.button('返回聊天并继续',key=prefix+'relations_chat',on_click=return_to_chat,type='primary')
     else: st.info('先添加一个匿名关系对象，再返回探索状态进入逐条消息标注。')
 
 
@@ -235,25 +256,38 @@ def _render_report(c,readiness,prefix):
     reason=eligibility_reason(state,c.state.messages,manual=True,live=c.gateway_mode=='live',authorized=_authorized(c,readiness),paused=exploration_paused(c.state.previous_decision))
     if st.button('整理当前对话线索',key='analyze_observations',type='primary',disabled=reason is not None):
         settings=get_session_settings()
-        start_observation(state,c.state.messages,c.id,lambda:make_gateway(settings=settings),manual=True,authorized=_authorized(c,readiness),live=c.gateway_mode=='live',paused=exploration_paused(c.state.previous_decision))
+        start_observation(state,c.state.messages,c.id,lambda:make_gateway(settings=settings,purpose='observation'),manual=True,authorized=_authorized(c,readiness),live=c.gateway_mode=='live',paused=exploration_paused(c.state.previous_decision))
         st.rerun()
     if reason=='unchanged': st.caption('当前资料已尝试整理；补充新例子后可再次查看。')
     if reason=='budget': st.info('本对话的额外请求额度已用完。仍可查看已有观察。')
-    if state.error_code: st.warning('这次整理未完成，已有观察保留；没有自动无限重试。')
+    if state.error_code:
+        error_text={'context_limit':'当前分析材料超过16,000字符上限，这不是性格信息不足。请导出后选取一段完整案例另开对话。',
+                    'invalid_response':'这次分析的结构或原话引用未通过校验，保留上次结果。',
+                    'timeout':'这次后台分析等待超时，保留上次结果。',
+                    'deadline':'这次后台分析已达到等待时限，保留上次结果。',
+                    'budget':'本次分析的请求额度已用完，仍可查看已有观察。'}
+        st.warning(error_text.get(state.error_code,'这次整理未完成，已有观察保留；没有自动无限重试。'))
     if state.report is None: st.info('尚未生成观察报告。')
     report=state.report
     if report:
         if state.is_stale(c.state.messages): st.warning('对话或标注已更新；下面保留上次快照的观察，等待下一次整理。')
         st.markdown('#### 本次对话观察')
-        st.caption('单向习惯需多个不同事件与情境支持。文字校验不证明心理解释正确，你可以修正。')
+        st.caption('本次案例的初步线索、多次经历支持和情境差异分开呈现；可展开核对原话。')
         if not report.observations: st.info('目前没有足够的本人日常例子，暂不形成观察。')
         for observation in report.observations:
+            view=describe_observation(observation)
             with st.container(border=True):
-                st.markdown('**'+DIMENSION_LABELS.get(observation.dimension,observation.dimension)+'** · '+DIRECTION_LABELS.get(observation.direction,observation.direction))
+                st.markdown('**'+DIMENSION_LABELS.get(observation.dimension,observation.dimension)+'** · '+view.level_label)
+                st.write(view.direction_label)
+                st.write(view.summary)
+                if getattr(observation,'coverage_reason',''): st.caption(observation.coverage_reason)
                 if observation.relation_id: st.caption('匿名关系：'+observation.relation_id)
-                for item in observation.evidence: st.write('依据：'+item.quote)
-                for item in observation.counter_evidence: st.write('不同线索：'+item.quote)
+                with st.expander('查看原话与待核对解释'):
+                    for item in observation.evidence: st.write('依据：'+item.quote)
+                    for item in observation.counter_evidence: st.write('不同线索：'+item.quote)
+                    for alternative in view.alternatives: st.write(alternative)
+                st.write('下一步可以聊：'+view.next_question)
                 columns=st.columns(3)
-                for column,action,label in zip(columns,('disagree','state','delete'),('不认同','只谈本次感受','删除观察')):
+                for column,action,label in zip(columns,('disagree','state','delete'),('不认同','暂不讨论此面向','删除观察')):
                     column.button(label,key=prefix+action+'_'+observation.key,on_click=correct_observation,args=(state,observation.key,action),type='tertiary')
         st.download_button('导出对话观察记录',data=export_observation_report(c),file_name='conversation-observations.md',mime='text/markdown',key='download_observations',on_click='ignore')

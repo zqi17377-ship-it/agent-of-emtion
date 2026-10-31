@@ -8,10 +8,10 @@ from .session_connection import session_readiness as configuration_readiness,get
 from .api_settings_ui import open_api_settings,render_api_settings
 from .conversations import Workspace,MAX_TITLE_LENGTH
 from .model_client import make_gateway
-from .schemas import EligibilityContext,ModelCallError,TurnResult
+from .schemas import EligibilityContext,ModelCallError,TurnResult,SessionState
 from .exploration_state import ExplorationState
 from .exploration_ui import render_exploration,purge_exploration_controls
-from .observation_ui import render_observation_entry,render_observation_monitor
+from .observation_ui import render_observation_entry,render_observation_monitor,open_observation_relations
 from .observation_scheduler import ObservationState,configure_observation
 from .onboarding_ui import render_home,render_chat_setup,go_home,begin_chat_setup
 
@@ -92,6 +92,8 @@ def initialize():
                 except ValueError: pass
         st.session_state['workspace']=w
     for conversation in workspace().items:
+        if not hasattr(conversation.state,'inquiry_state'):
+            conversation.state=SessionState.model_validate(conversation.state.model_dump())
         if conversation.gateway_mode!='live' and not conversation.state.messages:
             conversation.gateway_mode='live'
         if not hasattr(conversation,'exploration'):
@@ -100,6 +102,7 @@ def initialize():
             conversation.exploration.observation=ObservationState()
         if not hasattr(conversation.exploration,'flows'):
             conversation.exploration.flows={}
+        conversation.exploration.observation.subject_mode='synthetic_case' if conversation.state.mode=='synthetic_research' else 'self'
     st.session_state.setdefault('workspace_view','home')
     st.session_state.pop('mode_selector',None)
 
@@ -156,7 +159,7 @@ def render_sidebar():
                     st.rerun()
         st.button('API 设置',key='open_api_settings',icon=':material/settings:',on_click=open_api_settings,width='stretch')
         st.toggle('显示研究记录',key='show_research',value=False,help='查看软件动作与原文依据；这些记录不是诊断报告。')
-        st.markdown('<div class="sidebar-footnote">研究预览 v0.6.2<br>仅限成年人虚构案例</div>',unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-footnote">研究预览 v0.7<br>仅限成年人虚构案例</div>',unsafe_allow_html=True)
 
 
 def render_welcome():
@@ -173,6 +176,8 @@ def render_composer(c,w,enabled,allow_send=True):
     relation_key='explore_'+c.id+'_observe_next_relation'
     if allow_send and observation.mode!='off' and 'attachment' in observation.domains and observation.relations:
         st.selectbox('本条消息谈到的关系对象（可留空）',['',*observation.relations],format_func=lambda key:'暂不指定' if not key else key,key=relation_key)
+    elif allow_send and observation.mode!='off' and 'attachment' in observation.domains and c.state.inquiry_state.stage=='relation_scope':
+        st.button('设置匿名关系对象',key='setup_chat_relation',type='tertiary',on_click=open_observation_relations)
     placeholder='从你想说的那件事开始…' if enabled else '先完成上方确认，就可以开始了…'
     text=st.chat_input(placeholder,key='composer',disabled=not enabled,max_chars=5000)
     if text and allow_send and enabled:
@@ -181,8 +186,12 @@ def render_composer(c,w,enabled,allow_send=True):
             gateway=make_gateway(settings=get_session_settings())
             c.state.eligibility=EligibilityContext(adult_status='confirmed')
             existing_ids={m.id for m in c.state.messages}
+            from .dialogue_exploration import build_exploration_context
+            selected=st.session_state.get(relation_key,'')
+            context=build_exploration_context(observation,c.state.messages,selected_relation=selected,
+                                              subject_mode=getattr(observation,'subject_mode','self')) if enabled else None
             with st.spinner('正在认真读你说的话…'):
-                result=workflow.run_turn(c.state,text,gateway)
+                result=workflow.run_turn(c.state,text,gateway,exploration_context=context)
             w.record_turn(result)
             if c.state.messages and c.state.messages[-1].role=='assistant':
                 last_user=next((m for m in reversed(c.state.messages[:-1]) if m.role=='user'),None)

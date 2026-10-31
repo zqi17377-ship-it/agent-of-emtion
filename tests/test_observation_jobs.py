@@ -73,6 +73,22 @@ def test_new_messages_leave_report_stale_and_failure_retains_previous(monkeypatc
     assert start(jobs,s,bad,messages(3));finish(jobs,s,messages(3))
     assert s.report is report and s.error_code=='timeout' and s.request_count==2
 
+
+@pytest.mark.parametrize('change_old_source',[False,True])
+def test_relationship_job_ignores_only_new_message_bindings(monkeypatch,change_old_source):
+    gate=Event();jobs,s,g=setup(monkeypatch,gate)
+    configure_observation(s,'manual',('attachment',))
+    s.relations={'friend_1':'friend','friend_2':'friend'}
+    s.message_relations={'0':'friend_1','1':'friend_1'}
+    source=messages()
+    assert start(jobs,s,g,source)
+    current=source+[Message(id='new',role='user',content='虚构案例：后来我又和同一位朋友谈到一件新事。')]
+    s.message_relations['new']='friend_1'
+    if change_old_source: s.message_relations['0']='friend_2'
+    gate.set();finish(jobs,s,current)
+    assert (s.report is None)==change_old_source
+    assert s.request_count==1
+
 def test_last_request_usable_and_failure_spend_not_refunded(monkeypatch):
     jobs,s,g=setup(monkeypatch,fail=True);s.ledger.spent=5
     assert start(jobs,s,g,messages());finish(jobs,s,messages())
@@ -90,13 +106,13 @@ def test_snapshot_identity_dedup_and_stale_follow_relations_and_corrections(monk
     correct_observation(s,'mbti:EI:','disagree')
     assert start(jobs,s,g,messages());finish(jobs,s,messages())
 
-def test_auto_schedule_counts_failures_and_requires_ten_new_candidates(monkeypatch):
+def test_auto_schedule_counts_failures_and_requires_six_new_candidates(monkeypatch):
     jobs,s,g=setup(monkeypatch,fail=True);configure_observation(s,'auto',('mbti',))
     def ms(n): return [Message(id=str(i),role='user',content=f'事件{i}我在不同情境与朋友商量自己经历的事情'+ '甲'*60) for i in range(n)]
     def auto(n): return jobs.start_observation(s,ms(n),'c1',lambda:Gateway(fail=True),manual=False,authorized=True,live=True,paused=False)
-    assert auto(20);finish(jobs,s,ms(20));assert not auto(29)
-    assert auto(30);finish(jobs,s,ms(30))
-    assert auto(40);finish(jobs,s,ms(40));assert not auto(50)
+    assert auto(20);finish(jobs,s,ms(20));assert not auto(25)
+    assert auto(26);finish(jobs,s,ms(26))
+    assert auto(32);finish(jobs,s,ms(32));assert not auto(50)
     assert s.automatic_count==3 and s.request_count==3
 
 def test_repairs_share_request_cap_and_frozen_correction_constraints(monkeypatch):

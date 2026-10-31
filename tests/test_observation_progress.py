@@ -44,13 +44,13 @@ def test_manual_progress_reaches_content_threshold_at_two_candidates(count, frac
 
 @pytest.mark.parametrize('count,size,fraction,reason,chars', [
     (0, 50, 0.0, 'insufficient', 0),
-    (10, 50, 0.5, 'insufficient', 500),
-    (19, 60, 0.95, 'insufficient', 1140),
-    (20, 49, 0.98, 'insufficient', 980),
-    (20, 50, 1.0, None, 1000),
-    (25, 60, 1.0, None, 1500),
+    (3, 40, 0.5, 'insufficient', 120),
+    (5, 60, 5/6, 'insufficient', 300),
+    (6, 39, 0.975, 'insufficient', 234),
+    (6, 40, 1.0, None, 240),
+    (9, 60, 1.0, None, 540),
 ])
-def test_first_automatic_progress_requires_both_twenty_messages_and_thousand_chars(
+def test_first_automatic_progress_requires_both_six_messages_and_240_chars(
     count, size, fraction, reason, chars,
 ):
     state = ObservationState(mode='auto', domains=('mbti',))
@@ -61,7 +61,7 @@ def test_first_automatic_progress_requires_both_twenty_messages_and_thousand_cha
     assert result.reason == reason
     assert result.candidate_count == count
     assert result.candidate_chars == chars
-    assert '20' in result.detail and '1000' in result.detail
+    assert '6' in result.detail and '240' in result.detail
     assert str(count) in result.detail and str(chars) in result.detail
 
 
@@ -88,11 +88,11 @@ def test_candidate_progress_excludes_assistant_short_duplicate_and_whitespace():
 @pytest.mark.parametrize('count,fraction,reason,new_count', [
     (18, 0.0, 'insufficient_new', 0),
     (20, 0.0, 'insufficient_new', 0),
-    (29, 0.9, 'insufficient_new', 9),
+    (25, 5/6, 'insufficient_new', 5),
+    (26, 1.0, None, 6),
     (30, 1.0, None, 10),
-    (40, 1.0, None, 20),
 ])
-def test_next_automatic_progress_uses_ten_new_candidates_since_last_trigger(
+def test_next_automatic_progress_uses_six_new_candidates_since_last_trigger(
     count, fraction, reason, new_count,
 ):
     state = ObservationState(
@@ -103,7 +103,7 @@ def test_next_automatic_progress_uses_ten_new_candidates_since_last_trigger(
 
     assert result.fraction == fraction
     assert result.reason == reason
-    assert '10' in result.detail and str(new_count) in result.detail
+    assert '6' in result.detail and str(new_count) in result.detail
     assert '新增' in result.detail
 
 
@@ -112,11 +112,11 @@ def test_new_conversation_uses_first_threshold_with_retained_automatic_spend():
         mode='auto', domains=('mbti',), automatic_count=1, last_auto_candidate_count=0,
     )
 
-    result = progress(state, messages(10))
+    result = progress(state, messages(3))
 
     assert result.reason == 'insufficient'
     assert result.fraction == 0.5
-    assert '20' in result.detail and '1000' in result.detail
+    assert '6' in result.detail and '240' in result.detail
 
 
 @pytest.mark.parametrize('mode,domains,authorized,live,paused,pending,spent,reserved,attempted,automatic,reason', [

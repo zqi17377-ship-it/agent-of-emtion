@@ -1,4 +1,4 @@
-from .schemas import SessionState, EligibilityContext
+from .schemas import SessionState, EligibilityContext, InquiryState
 
 
 def new_session():
@@ -9,3 +9,4 @@ def clear_session(session):
     session.messages.clear()
     session.previous_decision = None
     session.eligibility = EligibilityContext()
+    session.inquiry_state = InquiryState()

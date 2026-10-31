@@ -15,9 +15,9 @@ def test_thresholds_and_authorization():
     from support_agent.observation_scheduler import ObservationState,configure_observation,eligibility_reason
     s=ObservationState(); configure_observation(s,'auto',('mbti',))
     check=lambda ms,**kw: eligibility_reason(s,ms,manual=False,live=True,authorized=True,paused=False,**kw)
-    assert check(messages(19)) is not None
-    assert check(messages(20,0)) is not None
-    assert check(messages(20)) is None
+    assert check(messages(5)) is not None
+    assert check(messages(6,0)) is not None
+    assert check(messages(6)) is None
     assert eligibility_reason(s,messages(20),manual=True,live=True,authorized=False,paused=False) is not None
     assert eligibility_reason(s,messages(1),manual=True,live=True,authorized=True,paused=False) is not None
 
@@ -62,10 +62,10 @@ def test_new_chat_text_requires_initial_threshold_while_retaining_auto_spend():
     clean=fresh_observation_state(previous);clean.last_auto_candidate_count=0
     configure_observation(clean,'auto',('mbti',))
     def check(ms): return eligibility_reason(clean,ms,manual=False,live=True,authorized=True,paused=False)
-    assert check(messages(10)) is not None
-    assert check(messages(19)) is not None
-    assert check(messages(20,0)) is not None
-    assert check(messages(20)) is None
-    clean.last_auto_candidate_count=20
-    assert check(messages(29)) is not None
-    assert check(messages(30)) is None
+    assert check(messages(3)) is not None
+    assert check(messages(5)) is not None
+    assert check(messages(6,0)) is not None
+    assert check(messages(6)) is None
+    clean.last_auto_candidate_count=6
+    assert check(messages(11)) is not None
+    assert check(messages(12)) is None

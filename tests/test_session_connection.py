@@ -96,7 +96,7 @@ st.write('monitor rendered')
     assert not app.exception and len(captured)==1
     monkeypatch.setattr(ui,'get_session_settings',lambda: (_ for _ in ()).throw(AssertionError('worker must not read Streamlit state')))
     captured[0]()
-    assert made==[{'settings':first}]
+    assert made==[{'settings':first,'purpose':'observation'}]
 
 
 def test_connection_changes_keep_read_only_reports_and_local_question_pages():

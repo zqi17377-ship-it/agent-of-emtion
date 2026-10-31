@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .observation_scheduler import count_candidates, eligibility_reason
+from .observation_scheduler import count_candidates, eligibility_reason,AUTO_FIRST_MESSAGES,AUTO_FIRST_CHARS,AUTO_NEW_MESSAGES
 
 
 @dataclass(frozen=True)
@@ -49,13 +49,13 @@ def observation_progress(state, messages, *, authorized: bool, live: bool, pause
         action = '点击“打开观察报告”，再选择“整理当前对话线索”。' if reason is None else filtering
     elif state.automatic_count and state.last_auto_candidate_count > 0:
         new_count = max(0, count - state.last_auto_candidate_count)
-        fraction = min(new_count / 10, 1.0)
+        fraction = min(new_count / AUTO_NEW_MESSAGES, 1.0)
         title = '已达到下次自动整理的内容门槛' if reason is None else '继续积累新的聊天线索'
-        detail = counts + f'距上次自动整理新增 {new_count}/10 条有效表达。'
+        detail = counts + f'距上次自动整理新增 {new_count}/{AUTO_NEW_MESSAGES} 条有效表达。'
         action = '已满足本次内容触发条件。' if reason is None else filtering
     else:
-        fraction = min(count / 20, chars / 1000, 1.0)
+        fraction = min(count / AUTO_FIRST_MESSAGES, chars / AUTO_FIRST_CHARS, 1.0)
         title = '已达到首次自动整理的内容门槛' if reason is None else '正在积累聊天线索'
-        detail = f'首次自动整理需要 20 条有效表达且至少 1000 个非空白字符；当前 {count}/20 条、{chars}/1000 字符。'
+        detail = f'首次自动整理需要 {AUTO_FIRST_MESSAGES} 条有效表达且至少 {AUTO_FIRST_CHARS} 个非空白字符；当前 {count}/{AUTO_FIRST_MESSAGES} 条、{chars}/{AUTO_FIRST_CHARS} 字符。'
         action = '已满足本次内容触发条件。' if reason is None else filtering
     return ObservationProgress(title, detail + action, fraction, count, chars, reason)

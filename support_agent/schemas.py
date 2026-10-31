@@ -50,6 +50,10 @@ class Assessment(StrictModel):
     clarifications: list[SignalClarification] = Field(default_factory=list)
     missing_information: list[str] = Field(default_factory=list)
     status: Literal['ok', 'insufficient', 'failed'] = 'insufficient'
+    reply_kind: Literal['unknown','general','event','behavior','motivation','cross_context','counterexample','none'] = 'unknown'
+    continuation: Literal['unknown','continue','skip','switch_topic','pause','decline','listen_only','distress'] = 'unknown'
+    inquiry_quote: str = Field(default='', max_length=180)
+    inquiry_topic: Literal['','energy','information','decisions','organization','cooperation','stress','openness','attachment_anxiety','attachment_avoidance'] = ''
 
 
 Action = Literal['listen', 'clarify', 'support', 'refer', 'urgent_support']
@@ -101,11 +105,24 @@ class TurnResult(StrictModel):
     metrics: dict = Field(default_factory=dict)
 
 
+class InquiryState(StrictModel):
+    """Dialogue progress, never a count or judgment of personality evidence."""
+    context_key: str = ''
+    topic: str = ''
+    stage: Literal['','event','behavior','motivation','cross_context','counterexample','relation_scope'] = ''
+    relation_id: str = ''
+    last_question: str = ''
+    last_question_message_id: str = ''
+    completed_topics: list[str] = Field(default_factory=list)
+    paused: bool = False
+
+
 class SessionState(StrictModel):
     messages: list[Message] = Field(default_factory=list)
     previous_decision: Decision | None = None
     eligibility: EligibilityContext = Field(default_factory=EligibilityContext)
     mode: Literal['synthetic_research', 'eligible_pilot'] = 'synthetic_research'
+    inquiry_state: InquiryState = Field(default_factory=InquiryState)
 
 
 class ModelResult(StrictModel):
@@ -123,6 +140,7 @@ class ModelCallError(Exception):
 class CallBudget:
     limit: int = 4
     deadline_seconds: float = 45.0
+    max_request_seconds: float = field(default=20.0, kw_only=True)
     attempts: int = 0
     started: float = field(default_factory=monotonic)
     _input_total: int = 0
@@ -147,7 +165,7 @@ class CallBudget:
         if self.remaining() <= 0:
             raise ModelCallError('deadline')
         self.attempts += 1
-        return min(20.0, self.remaining())
+        return min(self.max_request_seconds, self.remaining())
 
     def record(self, result: ModelResult) -> None:
         # Unreported/failed attempts make a complete total unknowable forever.
